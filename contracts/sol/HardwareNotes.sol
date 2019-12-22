@@ -1,19 +1,19 @@
-pragma solidity ^0.5.0;
+pragma solidity >= 0.5.0 < 0.6.0;
 
 contract HardwareNotes {
 
-	mapping (address => mapping(uint256 => address[])) public hardwareBatches;
+	mapping (address => mapping(uint256 => address[])) public hardware;
 
 	struct note {
-	// TODO does noteId specify position in notes array, or hardwareBatches[manufacturer][batchId] array?
-	// TODO timeout on withdrawStart
 		address manufacturer;
 		uint batchId;
+		uint hardwareId;
 		uint noteId;
 		address token;
 		uint amount;
 		uint withdrawDelay;
 		uint withdrawStart;
+		uint withdrawTimeout;
 		bool isInFlight;
 	}
 
@@ -23,40 +23,53 @@ contract HardwareNotes {
 
 		uint i;
 		for (i = 0; i < pubKeys.length; i++){
-			hardwareBatches[msg.sender][batch].push(pubKeys[i]);
+			hardware[msg.sender][batch].push(pubKeys[i]);
 		}
 	}
 
-	function deposit(address manufacturer, uint batchId, uint noteId, address token, uint amount, uint withdrawDelay) public {
+	function deposit(address manufacturer, uint batchId, uint hardwareId, uint noteId, address token, uint amount, uint withdrawDelay, uint withdrawTimeout) public {
 		// TODO actually transfer value from TokenContract to this contract
+		require(withdrawTimeout > withdrawDelay, "withdrawTimeout must be larger than withdrawDelay");
 		note memory newNote = note(
-			manufacturer, batchId, noteId,
+			manufacturer, batchId, hardwareId, noteId,
 			token, amount,
-			withdrawDelay, 0, false
+			withdrawDelay, withdrawTimeout, 0, false
 		);
 		notes.push(newNote);
 	}
 
-	function signalWithdraw(uint batchId, uint noteId, string memory message, uint8 v, bytes32 r, bytes32 s) public {
-		checkSig(batchId, noteId, message, v, r, s);
+	function signalWithdraw(uint batchId, uint hardwareId, uint noteId, string memory message, uint8 v, bytes32 r, bytes32 s) public {
+		checkSig(batchId, hardwareId, noteId, message, v, r, s);
 		notes[noteId].isInFlight = true;
 		notes[noteId].withdrawStart = block.timestamp;
 	}
 
-	function withdraw(uint batchId, uint noteId, string memory message, uint8 v, bytes32 r, bytes32 s, address recipient) public {
+	function withdraw(uint batchId, uint hardwareId, uint noteId, string memory message, uint8 v, bytes32 r, bytes32 s, address recipient) public {
 		// TODO check that signalWithdraw has not timed out
-		checkSig(batchId, noteId, message, v, r, s);
-		require(notes[noteId].isInFlight == true);
-		require(block.timestamp >= notes[noteId].withdrawStart + notes[noteId].withdrawDelay);
+		checkSig(batchId, hardwareId, noteId, message, v, r, s);
+		require(notes[noteId].isInFlight == true, "signalWithdraw has not been called");
+		require(block.timestamp >= notes[noteId].withdrawStart + notes[noteId].withdrawDelay, "withdrawDelay has not elapsed");
 		// TODO actually transfer value from this contract to recipient address
 
 	}
 
-	function checkSig(uint batchId, uint noteId, string memory message, uint8 v, bytes32 r, bytes32 s) public view {
+	function checkSig(uint batchId, uint hardwareId, uint noteId, string memory message, uint8 v, bytes32 r, bytes32 s) public view {
 		// TODO require(message in last_256_blockhashes)
 		// TODO we should check that the message is signing the expected function (either withdraw() or signalWithdraw())
 		note memory curNote = notes[noteId];
-		address notePubKey = hardwareBatches[curNote.manufacturer][batchId][noteId];
+		address notePubKey = hardware[curNote.manufacturer][batchId][hardwareId];
+
+		bytes32 check = checkSigHelper(message);
+
+		require(notePubKey == ecrecover(check, v, r, s), 'only trusted hardware can sign withdraw');
+
+	}
+
+	// ------------------------------------------------------------------------
+	// helper functions
+	// ------------------------------------------------------------------------
+
+	function checkSigHelper(string memory message) public pure returns(bytes32) {
 
         // The message header; we will fill in the length next
         string memory header = "\x19Ethereum Signed Message:\n000000";
@@ -125,9 +138,7 @@ contract HardwareNotes {
 
         // Perform the elliptic curve recover operation
         bytes32 check = keccak256(abi.encodePacked(header, message));
-
-
-		require(notePubKey == ecrecover(check, v, r, s), 'only trusted hardware can sign withdraw');
+		return check;
 
 	}
 

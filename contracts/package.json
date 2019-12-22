@@ -6,7 +6,7 @@
     "scripts": {
         "watch": "tsc --watch",
         "ganache": "./scripts/runGanache.sh",
-        "demo": "node build/run.js -s ~/solc-0.5.11 -o ./abi -i ./sol/",
+        "demo": "node build/run.js -s ~/solc -o ./abi -i ./sol/",
         "build": "tsc"
     },
     "author": "Ying Tong",

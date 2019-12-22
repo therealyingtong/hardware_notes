@@ -1,5 +1,5 @@
 # hardware_notes
-Offline-first cryptocurrency transactions
+Offline-first cryptocurrency transactions. (reference: https://ethresear.ch/t/hardware-notes-a-physical-asset-backed-by-cryptocurrancy/6471)
 
 Install all dependencies and build the source code:
 

@@ -1,0 +1,7 @@
+---
+env: 'kovan-dev'
+
+chain:
+  url: 'https://kovan.infura.io/v3/1bef5b4350a648c7a9439ea7bc9f8846'
+  chainId: 42
+  mnemonic: 'drink culture salad heavy sand blossom federal right tonight anchor tackle lunch'

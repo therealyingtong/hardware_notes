@@ -23,7 +23,6 @@ const genAccounts = (
     return accounts
 }
 
-
 let manufacturer
 let note
 let merchant
@@ -74,6 +73,17 @@ const compileAndDeploy = async (
     await hardwareNotesContract.deployed()
 
     console.log('Deployed HardwareNotes at', hardwareNotesContract.address)
+
+    // deploy HardwareNotes
+    const hardwareTokenAB = readAbiAndBin('HardwareNotes')
+    const hardwareTokenContractFactory = new ethers.ContractFactory(hardwareTokenAB.abi, hardwareTokenAB.bin, deployerWallet)
+    const hardwareTokenContract = await hardwareTokenContractFactory.deploy(
+        {gasPrice: ethers.utils.parseUnits('10', 'gwei')},
+    )
+    await hardwareTokenContract.deployed()
+
+    console.log('Deployed HardwareToken at', hardwareTokenContract.address)
+
 
     const numEth = 2
     const addressesToFund = [
@@ -191,12 +201,27 @@ const main = async () => {
 	console.log(`Depositing into note ${note.address}`)
 	const hardwareNotesContractWithBuyer = hardwareNotesContract.connect(buyer)
 	const depositTx = await hardwareNotesContractWithBuyer.deposit(
-		manufacturer.address, 0, 0, deployerWallet.address, 1, 0, 
+		manufacturer.address, 0, 0, 0, deployerWallet.address, 1, 0, 1 
 	)
 	await depositTx.wait()
 	console.log(` Buyer ${buyer.address} deposited into note ${note.address} via transaction ${depositTx.hash} `)
 
-    
+
+    console.log()
+	console.log('========================================')
+
+	// merchant calls signalWithdraw with a signed message from the note
+
+	let blockNumber1 = await provider.getBlockNumber()
+	let flatSig1 = await note.signMessage(blockNumber1.toString())
+	let sig1 = ethers.utils.splitSignature(flatSig1)
+	const hardwareNotesContractWithMerchant = hardwareNotesContract.connect(merchant)
+	const signalWithdrawTx = await hardwareNotesContractWithMerchant.signalWithdraw(
+		0, 0, 0, blockNumber1.toString(), sig1.v, sig1.r, sig1.s
+	)
+	await signalWithdrawTx.wait()
+	console.log(` Merchant signalled withdraw for note ${note.address} via transaction ${signalWithdrawTx.hash}`)
+
     console.log()
 	console.log('========================================')
 
@@ -210,25 +235,10 @@ const main = async () => {
 		await provider.send('evm_mine', [])
 	}
 
-	await timeTravel(time)
+	const timeTravelTx = await timeTravel(time)
 
 	let blockNumberAfter = await provider.getBlockNumber()
 	console.log(blockNumberAfter)
-
-    console.log()
-	console.log('========================================')
-
-	// merchant calls signalWithdraw with a signed message from the note
-
-	let blockNumber1 = await provider.getBlockNumber()
-	let flatSig1 = await note.signMessage(blockNumber1.toString())
-	let sig1 = ethers.utils.splitSignature(flatSig1)
-	const hardwareNotesContractWithMerchant = hardwareNotesContract.connect(merchant)
-	const signalWithdrawTx = await hardwareNotesContractWithMerchant.signalWithdraw(
-		0, 0, blockNumber1.toString(), sig1.v, sig1.r, sig1.s
-	)
-	await signalWithdrawTx.wait()
-	console.log(` Merchant signalled withdraw for note ${note.address} via transaction ${signalWithdrawTx.hash}`)
 
     console.log()
 	console.log('========================================')
@@ -238,7 +248,7 @@ const main = async () => {
 	let flatSig2 = await note.signMessage(blockNumber2.toString())
 	let sig2 = ethers.utils.splitSignature(flatSig2)
 	const withdrawTx = await hardwareNotesContractWithMerchant.withdraw(
-		0, 0, blockNumber2.toString(), sig2.v, sig2.r, sig2.s, merchant.address
+		0, 0, 0, blockNumber2.toString(), sig2.v, sig2.r, sig2.s, merchant.address
 	)
 	await withdrawTx.wait()
 	console.log(` Merchant called withdraw for note ${note.address} to recipient ${merchant.address} via transaction ${withdrawTx.hash}`)

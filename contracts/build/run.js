@@ -71,7 +71,7 @@ var compileAndDeploy = function (abiDir, solDir, solcBinaryPath, provider, deplo
 merchant, buyer) {
     if (solcBinaryPath === void 0) { solcBinaryPath = 'solc'; }
     return __awaiter(void 0, void 0, void 0, function () {
-        var readAbiAndBin, solcCmd, result, hardwareNotesAB, hardwareNotesContractFactory, hardwareNotesContract, numEth, addressesToFund, _i, addressesToFund_1, address, tx, _a, _b, _c, _d, _e, receipt;
+        var readAbiAndBin, solcCmd, result, hardwareNotesAB, hardwareNotesContractFactory, hardwareNotesContract, hardwareTokenAB, hardwareTokenContractFactory, hardwareTokenContract, numEth, addressesToFund, _i, addressesToFund_1, address, tx, _a, _b, _c, _d, _e, receipt;
         return __generator(this, function (_f) {
             switch (_f.label) {
                 case 0:
@@ -93,6 +93,15 @@ merchant, buyer) {
                 case 2:
                     _f.sent();
                     console.log('Deployed HardwareNotes at', hardwareNotesContract.address);
+                    hardwareTokenAB = readAbiAndBin('HardwareNotes');
+                    hardwareTokenContractFactory = new ethers.ContractFactory(hardwareTokenAB.abi, hardwareTokenAB.bin, deployerWallet);
+                    return [4 /*yield*/, hardwareTokenContractFactory.deploy({ gasPrice: ethers.utils.parseUnits('10', 'gwei') })];
+                case 3:
+                    hardwareTokenContract = _f.sent();
+                    return [4 /*yield*/, hardwareTokenContract.deployed()];
+                case 4:
+                    _f.sent();
+                    console.log('Deployed HardwareToken at', hardwareTokenContract.address);
                     numEth = 2;
                     addressesToFund = [
                         manufacturer.address,
@@ -100,33 +109,33 @@ merchant, buyer) {
                         buyer.address,
                     ];
                     _i = 0, addressesToFund_1 = addressesToFund;
-                    _f.label = 3;
-                case 3:
-                    if (!(_i < addressesToFund_1.length)) return [3 /*break*/, 8];
+                    _f.label = 5;
+                case 5:
+                    if (!(_i < addressesToFund_1.length)) return [3 /*break*/, 10];
                     address = addressesToFund_1[_i];
                     tx = void 0;
                     _b = (_a = provider).sendTransaction;
                     _d = (_c = deployerWallet).sign;
                     _e = {};
                     return [4 /*yield*/, provider.getTransactionCount(deployerWallet.address)];
-                case 4: return [4 /*yield*/, _b.apply(_a, [_d.apply(_c, [(_e.nonce = _f.sent(),
+                case 6: return [4 /*yield*/, _b.apply(_a, [_d.apply(_c, [(_e.nonce = _f.sent(),
                                 _e.gasPrice = ethers.utils.parseUnits('10', 'gwei'),
                                 _e.gasLimit = 21000,
                                 _e.to = address,
                                 _e.value = ethers.utils.parseUnits(numEth.toString(), 'ether'),
                                 _e.data = '0x',
                                 _e)])])];
-                case 5:
+                case 7:
                     tx = _f.sent();
                     return [4 /*yield*/, tx.wait()];
-                case 6:
+                case 8:
                     receipt = _f.sent();
                     console.log("Gave away " + numEth + " ETH to", address);
-                    _f.label = 7;
-                case 7:
+                    _f.label = 9;
+                case 9:
                     _i++;
-                    return [3 /*break*/, 3];
-                case 8: return [2 /*return*/, {
+                    return [3 /*break*/, 5];
+                case 10: return [2 /*return*/, {
                         HardwareNotes: hardwareNotesContract
                     }];
             }
@@ -134,7 +143,7 @@ merchant, buyer) {
     });
 };
 var main = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var parser, args, abiDir, solDir, solcBinaryPath, rpcUrl, provider, wallets, deployerWallet, manufacturer, note, merchant, buyer, contracts, hardwareNotesContract, hardwareNotesContractWithManufacturer, registerTx, hardwareNotesContractWithBuyer, depositTx, blockNumberBefore, time, timeTravel, blockNumberAfter, blockNumber1, flatSig1, sig1, hardwareNotesContractWithMerchant, signalWithdrawTx, blockNumber2, flatSig2, sig2, withdrawTx;
+    var parser, args, abiDir, solDir, solcBinaryPath, rpcUrl, provider, wallets, deployerWallet, manufacturer, note, merchant, buyer, contracts, hardwareNotesContract, hardwareNotesContractWithManufacturer, registerTx, hardwareNotesContractWithBuyer, depositTx, blockNumber1, flatSig1, sig1, hardwareNotesContractWithMerchant, signalWithdrawTx, blockNumberBefore, time, timeTravel, timeTravelTx, blockNumberAfter, blockNumber2, flatSig2, sig2, withdrawTx;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -192,7 +201,7 @@ var main = function () { return __awaiter(void 0, void 0, void 0, function () {
                 // buyer deposits into note
                 console.log("Depositing into note " + note.address);
                 hardwareNotesContractWithBuyer = hardwareNotesContract.connect(buyer);
-                return [4 /*yield*/, hardwareNotesContractWithBuyer.deposit(manufacturer.address, 0, 0, deployerWallet.address, 1, 0)];
+                return [4 /*yield*/, hardwareNotesContractWithBuyer.deposit(manufacturer.address, 0, 0, 0, deployerWallet.address, 1, 0, 1)];
             case 4:
                 depositTx = _a.sent();
                 return [4 /*yield*/, depositTx.wait()];
@@ -203,6 +212,23 @@ var main = function () { return __awaiter(void 0, void 0, void 0, function () {
                 console.log('========================================');
                 return [4 /*yield*/, provider.getBlockNumber()];
             case 6:
+                blockNumber1 = _a.sent();
+                return [4 /*yield*/, note.signMessage(blockNumber1.toString())];
+            case 7:
+                flatSig1 = _a.sent();
+                sig1 = ethers.utils.splitSignature(flatSig1);
+                hardwareNotesContractWithMerchant = hardwareNotesContract.connect(merchant);
+                return [4 /*yield*/, hardwareNotesContractWithMerchant.signalWithdraw(0, 0, 0, blockNumber1.toString(), sig1.v, sig1.r, sig1.s)];
+            case 8:
+                signalWithdrawTx = _a.sent();
+                return [4 /*yield*/, signalWithdrawTx.wait()];
+            case 9:
+                _a.sent();
+                console.log(" Merchant signalled withdraw for note " + note.address + " via transaction " + signalWithdrawTx.hash);
+                console.log();
+                console.log('========================================');
+                return [4 /*yield*/, provider.getBlockNumber()];
+            case 10:
                 blockNumberBefore = _a.sent();
                 console.log(blockNumberBefore);
                 time = 1000;
@@ -220,29 +246,12 @@ var main = function () { return __awaiter(void 0, void 0, void 0, function () {
                     });
                 }); };
                 return [4 /*yield*/, timeTravel(time)];
-            case 7:
-                _a.sent();
+            case 11:
+                timeTravelTx = _a.sent();
                 return [4 /*yield*/, provider.getBlockNumber()];
-            case 8:
+            case 12:
                 blockNumberAfter = _a.sent();
                 console.log(blockNumberAfter);
-                console.log();
-                console.log('========================================');
-                return [4 /*yield*/, provider.getBlockNumber()];
-            case 9:
-                blockNumber1 = _a.sent();
-                return [4 /*yield*/, note.signMessage(blockNumber1.toString())];
-            case 10:
-                flatSig1 = _a.sent();
-                sig1 = ethers.utils.splitSignature(flatSig1);
-                hardwareNotesContractWithMerchant = hardwareNotesContract.connect(merchant);
-                return [4 /*yield*/, hardwareNotesContractWithMerchant.signalWithdraw(0, 0, blockNumber1.toString(), sig1.v, sig1.r, sig1.s)];
-            case 11:
-                signalWithdrawTx = _a.sent();
-                return [4 /*yield*/, signalWithdrawTx.wait()];
-            case 12:
-                _a.sent();
-                console.log(" Merchant signalled withdraw for note " + note.address + " via transaction " + signalWithdrawTx.hash);
                 console.log();
                 console.log('========================================');
                 return [4 /*yield*/, provider.getBlockNumber()];
@@ -252,7 +261,7 @@ var main = function () { return __awaiter(void 0, void 0, void 0, function () {
             case 14:
                 flatSig2 = _a.sent();
                 sig2 = ethers.utils.splitSignature(flatSig2);
-                return [4 /*yield*/, hardwareNotesContractWithMerchant.withdraw(0, 0, blockNumber2.toString(), sig2.v, sig2.r, sig2.s, merchant.address)];
+                return [4 /*yield*/, hardwareNotesContractWithMerchant.withdraw(0, 0, 0, blockNumber2.toString(), sig2.v, sig2.r, sig2.s, merchant.address)];
             case 15:
                 withdrawTx = _a.sent();
                 return [4 /*yield*/, withdrawTx.wait()];
