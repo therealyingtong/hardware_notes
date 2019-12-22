@@ -56,6 +56,9 @@ var manufacturer;
 var note;
 var merchant;
 var buyer;
+var tokenName = "hardwareToken";
+var tokenSymbol = "HWT";
+var tokenDecimal = 10;
 var execute = function (cmd) {
     var result = shell.exec(cmd, { silent: false });
     if (result.code !== 0) {
@@ -71,7 +74,7 @@ var compileAndDeploy = function (abiDir, solDir, solcBinaryPath, provider, deplo
 merchant, buyer) {
     if (solcBinaryPath === void 0) { solcBinaryPath = 'solc'; }
     return __awaiter(void 0, void 0, void 0, function () {
-        var readAbiAndBin, solcCmd, result, hardwareNotesAB, hardwareNotesContractFactory, hardwareNotesContract, hardwareTokenAB, hardwareTokenContractFactory, hardwareTokenContract, numEth, addressesToFund, _i, addressesToFund_1, address, tx, _a, _b, _c, _d, _e, receipt;
+        var readAbiAndBin, solcCmd, result, hardwareNotesAB, hardwareNotesContractFactory, hardwareNotesContract, tokenAB, tokenContractFactory, tokenContract, numEth, addressesToFund, _i, addressesToFund_1, address, tx, _a, _b, _c, _d, _e, receipt;
         return __generator(this, function (_f) {
             switch (_f.label) {
                 case 0:
@@ -93,15 +96,15 @@ merchant, buyer) {
                 case 2:
                     _f.sent();
                     console.log('Deployed HardwareNotes at', hardwareNotesContract.address);
-                    hardwareTokenAB = readAbiAndBin('HardwareNotes');
-                    hardwareTokenContractFactory = new ethers.ContractFactory(hardwareTokenAB.abi, hardwareTokenAB.bin, deployerWallet);
-                    return [4 /*yield*/, hardwareTokenContractFactory.deploy({ gasPrice: ethers.utils.parseUnits('10', 'gwei') })];
+                    tokenAB = readAbiAndBin('Token');
+                    tokenContractFactory = new ethers.ContractFactory(tokenAB.abi, tokenAB.bin, deployerWallet);
+                    return [4 /*yield*/, tokenContractFactory.deploy(tokenName, tokenSymbol, tokenDecimal, { gasPrice: ethers.utils.parseUnits('10', 'gwei') })];
                 case 3:
-                    hardwareTokenContract = _f.sent();
-                    return [4 /*yield*/, hardwareTokenContract.deployed()];
+                    tokenContract = _f.sent();
+                    return [4 /*yield*/, tokenContract.deployed()];
                 case 4:
                     _f.sent();
-                    console.log('Deployed HardwareToken at', hardwareTokenContract.address);
+                    console.log('Deployed HardwareToken at', tokenContract.address);
                     numEth = 2;
                     addressesToFund = [
                         manufacturer.address,

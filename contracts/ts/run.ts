@@ -28,6 +28,10 @@ let note
 let merchant
 let buyer
 
+const tokenName = "hardwareToken"
+const tokenSymbol = "HWT"
+const tokenDecimal = 10
+
 const execute = (cmd: string) => {
     const result = shell.exec(cmd, { silent: false })
     if (result.code !== 0) {
@@ -74,15 +78,16 @@ const compileAndDeploy = async (
 
     console.log('Deployed HardwareNotes at', hardwareNotesContract.address)
 
-    // deploy HardwareNotes
-    const hardwareTokenAB = readAbiAndBin('HardwareNotes')
-    const hardwareTokenContractFactory = new ethers.ContractFactory(hardwareTokenAB.abi, hardwareTokenAB.bin, deployerWallet)
-    const hardwareTokenContract = await hardwareTokenContractFactory.deploy(
+    // deploy tokenContract
+    const tokenAB = readAbiAndBin('Token')
+    const tokenContractFactory = new ethers.ContractFactory(tokenAB.abi, tokenAB.bin, deployerWallet)
+    const tokenContract = await tokenContractFactory.deploy(
+		tokenName, tokenSymbol, tokenDecimal,
         {gasPrice: ethers.utils.parseUnits('10', 'gwei')},
     )
-    await hardwareTokenContract.deployed()
+    await tokenContract.deployed()
 
-    console.log('Deployed HardwareToken at', hardwareTokenContract.address)
+    console.log('Deployed HardwareToken at', tokenContract.address)
 
 
     const numEth = 2
