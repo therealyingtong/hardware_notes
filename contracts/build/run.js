@@ -42,6 +42,9 @@ var shell = require("shelljs");
 var path = require("path");
 var fs = require("fs");
 var ethers = require("ethers");
+var ganache = require("ganache-cli");
+var Web3 = require('web3');
+var web3 = new Web3('http://localhost:8545');
 var genAccounts = function (num, mnemonic, provider) {
     var accounts = [];
     for (var i = 0; i < num; i++) {
@@ -56,9 +59,10 @@ var manufacturer;
 var note;
 var merchant;
 var buyer;
-var tokenName = "hardwareToken";
-var tokenSymbol = "HWT";
-var tokenDecimal = 10;
+var tokenName = "token";
+var tokenSymbol = "TKN";
+var tokenDecimal = 30;
+var amount = 1;
 var execute = function (cmd) {
     var result = shell.exec(cmd, { silent: false });
     if (result.code !== 0) {
@@ -74,7 +78,7 @@ var compileAndDeploy = function (abiDir, solDir, solcBinaryPath, provider, deplo
 merchant, buyer) {
     if (solcBinaryPath === void 0) { solcBinaryPath = 'solc'; }
     return __awaiter(void 0, void 0, void 0, function () {
-        var readAbiAndBin, solcCmd, result, hardwareNotesAB, hardwareNotesContractFactory, hardwareNotesContract, tokenAB, tokenContractFactory, tokenContract, numEth, addressesToFund, _i, addressesToFund_1, address, tx, _a, _b, _c, _d, _e, receipt;
+        var readAbiAndBin, solcCmd, result, numEth, addressesToFund, _i, addressesToFund_1, address, tx, _a, _b, _c, _d, _e, receipt, hardwareNotesAB, hardwareNotesContractFactory, hardwareNotesContract, tokenAB, tokenContractFactory, tokenContract;
         return __generator(this, function (_f) {
             switch (_f.label) {
                 case 0:
@@ -87,24 +91,6 @@ merchant, buyer) {
                     shell.mkdir('-p', abiDir);
                     solcCmd = solcBinaryPath + " -o " + abiDir + " " + solDir + "/*.sol --overwrite --optimize --abi --bin";
                     result = execute(solcCmd);
-                    hardwareNotesAB = readAbiAndBin('HardwareNotes');
-                    hardwareNotesContractFactory = new ethers.ContractFactory(hardwareNotesAB.abi, hardwareNotesAB.bin, deployerWallet);
-                    return [4 /*yield*/, hardwareNotesContractFactory.deploy({ gasPrice: ethers.utils.parseUnits('10', 'gwei') })];
-                case 1:
-                    hardwareNotesContract = _f.sent();
-                    return [4 /*yield*/, hardwareNotesContract.deployed()];
-                case 2:
-                    _f.sent();
-                    console.log('Deployed HardwareNotes at', hardwareNotesContract.address);
-                    tokenAB = readAbiAndBin('Token');
-                    tokenContractFactory = new ethers.ContractFactory(tokenAB.abi, tokenAB.bin, deployerWallet);
-                    return [4 /*yield*/, tokenContractFactory.deploy(tokenName, tokenSymbol, tokenDecimal, { gasPrice: ethers.utils.parseUnits('10', 'gwei') })];
-                case 3:
-                    tokenContract = _f.sent();
-                    return [4 /*yield*/, tokenContract.deployed()];
-                case 4:
-                    _f.sent();
-                    console.log('Deployed HardwareToken at', tokenContract.address);
                     numEth = 2;
                     addressesToFund = [
                         manufacturer.address,
@@ -112,41 +98,93 @@ merchant, buyer) {
                         buyer.address,
                     ];
                     _i = 0, addressesToFund_1 = addressesToFund;
-                    _f.label = 5;
-                case 5:
-                    if (!(_i < addressesToFund_1.length)) return [3 /*break*/, 10];
+                    _f.label = 1;
+                case 1:
+                    if (!(_i < addressesToFund_1.length)) return [3 /*break*/, 6];
                     address = addressesToFund_1[_i];
                     tx = void 0;
                     _b = (_a = provider).sendTransaction;
                     _d = (_c = deployerWallet).sign;
                     _e = {};
                     return [4 /*yield*/, provider.getTransactionCount(deployerWallet.address)];
-                case 6: return [4 /*yield*/, _b.apply(_a, [_d.apply(_c, [(_e.nonce = _f.sent(),
+                case 2: return [4 /*yield*/, _b.apply(_a, [_d.apply(_c, [(_e.nonce = _f.sent(),
                                 _e.gasPrice = ethers.utils.parseUnits('10', 'gwei'),
                                 _e.gasLimit = 21000,
                                 _e.to = address,
                                 _e.value = ethers.utils.parseUnits(numEth.toString(), 'ether'),
                                 _e.data = '0x',
                                 _e)])])];
-                case 7:
+                case 3:
                     tx = _f.sent();
                     return [4 /*yield*/, tx.wait()];
-                case 8:
+                case 4:
                     receipt = _f.sent();
                     console.log("Gave away " + numEth + " ETH to", address);
-                    _f.label = 9;
-                case 9:
+                    _f.label = 5;
+                case 5:
                     _i++;
-                    return [3 /*break*/, 5];
-                case 10: return [2 /*return*/, {
-                        HardwareNotes: hardwareNotesContract
-                    }];
+                    return [3 /*break*/, 1];
+                case 6:
+                    hardwareNotesAB = readAbiAndBin('HardwareNotes');
+                    hardwareNotesContractFactory = new ethers.ContractFactory(hardwareNotesAB.abi, hardwareNotesAB.bin, deployerWallet);
+                    return [4 /*yield*/, hardwareNotesContractFactory.deploy({ gasPrice: ethers.utils.parseUnits('10', 'gwei') })];
+                case 7:
+                    hardwareNotesContract = _f.sent();
+                    return [4 /*yield*/, hardwareNotesContract.deployed()];
+                case 8:
+                    _f.sent();
+                    console.log('Deployed HardwareNotes at', hardwareNotesContract.address);
+                    tokenAB = readAbiAndBin('Token');
+                    tokenContractFactory = new ethers.ContractFactory(tokenAB.abi, tokenAB.bin, buyer);
+                    return [4 /*yield*/, tokenContractFactory.deploy(tokenName, tokenSymbol, tokenDecimal, { gasPrice: ethers.utils.parseUnits('10', 'gwei') })];
+                case 9:
+                    tokenContract = _f.sent();
+                    return [4 /*yield*/, tokenContract.deployed()];
+                case 10:
+                    _f.sent();
+                    console.log('Deployed HardwareToken at', tokenContract.address);
+                    return [2 /*return*/, {
+                            HardwareNotes: hardwareNotesContract,
+                            Token: tokenContract
+                        }];
             }
         });
     });
 };
 var main = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var parser, args, abiDir, solDir, solcBinaryPath, rpcUrl, provider, wallets, deployerWallet, manufacturer, note, merchant, buyer, contracts, hardwareNotesContract, hardwareNotesContractWithManufacturer, registerTx, hardwareNotesContractWithBuyer, depositTx, blockNumber1, flatSig1, sig1, hardwareNotesContractWithMerchant, signalWithdrawTx, blockNumberBefore, time, timeTravel, timeTravelTx, blockNumberAfter, blockNumber2, flatSig2, sig2, withdrawTx;
+    function increaseTime(time) {
+        return __awaiter(this, void 0, void 0, function () {
+            var blockAfter;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, web3.currentProvider.send({
+                            jsonrpc: '2.0',
+                            method: 'evm_increaseTime',
+                            params: [time],
+                            id: new Date().getSeconds()
+                        }, function () { })];
+                    case 1:
+                        _a.sent();
+                        return [4 /*yield*/, web3.currentProvider.send({
+                                jsonrpc: '2.0',
+                                method: 'evm_mine',
+                                params: [],
+                                id: new Date().getSeconds()
+                            }, function () { })];
+                    case 2:
+                        _a.sent();
+                        return [4 /*yield*/, provider.getBlock(provider.getBlockNumber())];
+                    case 3:
+                        blockAfter = _a.sent();
+                        console.log('timestamp after', blockAfter.timestamp);
+                        console.log();
+                        console.log('========================================');
+                        return [2 /*return*/];
+                }
+            });
+        });
+    }
+    var parser, args, abiDir, solDir, solcBinaryPath, rpcUrl, provider, wallets, deployerWallet, manufacturer, note, merchant, buyer, contracts, hardwareNotesContract, tokenContract, hardwareNotesContractWithManufacturer, registerTx, tokenContractWithBuyer, approveTx, hardwareNotesContractWithBuyer, depositTx, blockNumber1, flatSig1, sig1, hardwareNotesContractWithMerchant, signalWithdrawTx, blockBefore, time, timeTravel, blockNumber2, flatSig2, sig2, withdrawTx;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -187,6 +225,7 @@ var main = function () { return __awaiter(void 0, void 0, void 0, function () {
             case 1:
                 contracts = _a.sent();
                 hardwareNotesContract = contracts.HardwareNotes;
+                tokenContract = contracts.Token;
                 console.log();
                 console.log('========================================');
                 // manufacturer registers a batch of notes
@@ -201,74 +240,67 @@ var main = function () { return __awaiter(void 0, void 0, void 0, function () {
                 console.log(" Manufacturer " + manufacturer.address + " registered batch [" + note.address + "] via transaction " + registerTx.hash + " ");
                 console.log();
                 console.log('========================================');
+                // buyer approves HardwareNotes.sol to call transferFrom
+                console.log("Approving HardwareNotes contract to  call transferFrom");
+                tokenContractWithBuyer = tokenContract.connect(buyer);
+                return [4 /*yield*/, tokenContractWithBuyer.approve(hardwareNotesContract.address, amount)];
+            case 4:
+                approveTx = _a.sent();
+                return [4 /*yield*/, approveTx.wait()];
+            case 5:
+                _a.sent();
+                console.log("Buyer " + buyer.address + " approved HardwareNotes contract " + hardwareNotesContract.address + " to transfer " + amount + " on Token contract " + tokenContract.address);
                 // buyer deposits into note
                 console.log("Depositing into note " + note.address);
                 hardwareNotesContractWithBuyer = hardwareNotesContract.connect(buyer);
-                return [4 /*yield*/, hardwareNotesContractWithBuyer.deposit(manufacturer.address, 0, 0, 0, deployerWallet.address, 1, 0, 1)];
-            case 4:
+                return [4 /*yield*/, hardwareNotesContractWithBuyer.deposit(manufacturer.address, 0, 0, 0, tokenContract.address, amount, 10000, 100000000)];
+            case 6:
                 depositTx = _a.sent();
                 return [4 /*yield*/, depositTx.wait()];
-            case 5:
+            case 7:
                 _a.sent();
                 console.log(" Buyer " + buyer.address + " deposited into note " + note.address + " via transaction " + depositTx.hash + " ");
                 console.log();
                 console.log('========================================');
                 return [4 /*yield*/, provider.getBlockNumber()];
-            case 6:
+            case 8:
                 blockNumber1 = _a.sent();
                 return [4 /*yield*/, note.signMessage(blockNumber1.toString())];
-            case 7:
+            case 9:
                 flatSig1 = _a.sent();
                 sig1 = ethers.utils.splitSignature(flatSig1);
                 hardwareNotesContractWithMerchant = hardwareNotesContract.connect(merchant);
                 return [4 /*yield*/, hardwareNotesContractWithMerchant.signalWithdraw(0, 0, 0, blockNumber1.toString(), sig1.v, sig1.r, sig1.s)];
-            case 8:
+            case 10:
                 signalWithdrawTx = _a.sent();
                 return [4 /*yield*/, signalWithdrawTx.wait()];
-            case 9:
+            case 11:
                 _a.sent();
                 console.log(" Merchant signalled withdraw for note " + note.address + " via transaction " + signalWithdrawTx.hash);
                 console.log();
                 console.log('========================================');
-                return [4 /*yield*/, provider.getBlockNumber()];
-            case 10:
-                blockNumberBefore = _a.sent();
-                console.log(blockNumberBefore);
-                time = 1000;
-                timeTravel = function (time) { return __awaiter(void 0, void 0, void 0, function () {
-                    return __generator(this, function (_a) {
-                        switch (_a.label) {
-                            case 0: return [4 /*yield*/, provider.send('evm_increaseTime', time)];
-                            case 1:
-                                _a.sent();
-                                return [4 /*yield*/, provider.send('evm_mine', [])];
-                            case 2:
-                                _a.sent();
-                                return [2 /*return*/];
-                        }
-                    });
-                }); };
-                return [4 /*yield*/, timeTravel(time)];
-            case 11:
-                timeTravelTx = _a.sent();
-                return [4 /*yield*/, provider.getBlockNumber()];
+                return [4 /*yield*/, provider.getBlock(provider.getBlockNumber())];
             case 12:
-                blockNumberAfter = _a.sent();
-                console.log(blockNumberAfter);
-                console.log();
-                console.log('========================================');
-                return [4 /*yield*/, provider.getBlockNumber()];
+                blockBefore = _a.sent();
+                console.log('timestampBefore', blockBefore.timestamp);
+                time = 1000000;
+                return [4 /*yield*/, increaseTime(time)
+                    // merchant calls withdraw with another signed message from the note
+                ];
             case 13:
+                timeTravel = _a.sent();
+                return [4 /*yield*/, provider.getBlockNumber()];
+            case 14:
                 blockNumber2 = _a.sent();
                 return [4 /*yield*/, note.signMessage(blockNumber2.toString())];
-            case 14:
+            case 15:
                 flatSig2 = _a.sent();
                 sig2 = ethers.utils.splitSignature(flatSig2);
                 return [4 /*yield*/, hardwareNotesContractWithMerchant.withdraw(0, 0, 0, blockNumber2.toString(), sig2.v, sig2.r, sig2.s, merchant.address)];
-            case 15:
+            case 16:
                 withdrawTx = _a.sent();
                 return [4 /*yield*/, withdrawTx.wait()];
-            case 16:
+            case 17:
                 _a.sent();
                 console.log(" Merchant called withdraw for note " + note.address + " to recipient " + merchant.address + " via transaction " + withdrawTx.hash);
                 return [2 /*return*/];

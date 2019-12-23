@@ -1,8 +1,16 @@
 pragma solidity >= 0.5.0 < 0.6.0;
 
+contract ERC20Interface {
+    function transferFrom(address from, address to, uint256 value) public returns(bool) {}
+	function transfer(address recipient, uint value) public returns (bool) {}
+}
+
 contract HardwareNotes {
 
+	ERC20Interface public tokenContract;
+
 	mapping (address => mapping(uint256 => address[])) public hardware;
+	mapping (uint256 => uint256) ETHBalance; // map noteId to value
 
 	struct note {
 		address manufacturer;
@@ -12,8 +20,8 @@ contract HardwareNotes {
 		address token;
 		uint amount;
 		uint withdrawDelay;
-		uint withdrawStart;
 		uint withdrawTimeout;
+		uint withdrawStart;
 		bool isInFlight;
 	}
 
@@ -27,9 +35,32 @@ contract HardwareNotes {
 		}
 	}
 
-	function deposit(address manufacturer, uint batchId, uint hardwareId, uint noteId, address token, uint amount, uint withdrawDelay, uint withdrawTimeout) public {
-		// TODO actually transfer value from TokenContract to this contract
+	function deposit(
+		address manufacturer,
+		uint batchId,
+		uint hardwareId,
+		uint noteId,
+		address token,
+		uint amount,
+		uint withdrawDelay,
+		uint withdrawTimeout)
+	public payable {
+
 		require(withdrawTimeout > withdrawDelay, "withdrawTimeout must be larger than withdrawDelay");
+
+		// ETH deposit
+		if (token == address(0)){
+			require(msg.value >= amount * 1 ether, "deposit insufficient");
+			ETHBalance[noteId] = amount;
+		// non-ETH deposit
+		} else {
+			tokenContract = ERC20Interface(token);
+			require(
+				tokenContract.transferFrom(msg.sender, hardware[manufacturer][batchId][hardwareId], amount),
+				"token transfer not approved"
+			);
+		}
+
 		note memory newNote = note(
 			manufacturer, batchId, hardwareId, noteId,
 			token, amount,
@@ -44,12 +75,26 @@ contract HardwareNotes {
 		notes[noteId].withdrawStart = block.timestamp;
 	}
 
-	function withdraw(uint batchId, uint hardwareId, uint noteId, string memory message, uint8 v, bytes32 r, bytes32 s, address recipient) public {
-		// TODO check that signalWithdraw has not timed out
-		checkSig(batchId, hardwareId, noteId, message, v, r, s);
+	function withdraw(uint batchId, uint hardwareId, uint noteId, string memory message, uint8 v, bytes32 r, bytes32 s, address payable recipient) public {
+
+		note memory _note = notes[noteId];
 		require(notes[noteId].isInFlight == true, "signalWithdraw has not been called");
-		require(block.timestamp >= notes[noteId].withdrawStart + notes[noteId].withdrawDelay, "withdrawDelay has not elapsed");
-		// TODO actually transfer value from this contract to recipient address
+		require(block.timestamp <= _note.withdrawStart + _note.withdrawTimeout, "withdraw has timed out since signalWithdraw");
+		require(block.timestamp >= _note.withdrawStart + _note.withdrawDelay, "withdrawDelay has not ended");
+		checkSig(batchId, hardwareId, noteId, message, v, r, s);
+
+		// ETH deposit
+		if (_note.token == address(0)){
+			recipient.transfer(_note.amount * 1 ether);
+			ETHBalance[noteId] = 0;
+		// non-ETH deposit
+		} else {
+			tokenContract = ERC20Interface(_note.token);
+			// require(
+			// 	tokenContract.transferFrom(_note.token, recipient, _note.amount),
+			// 	"token transfer not approved"
+			// );
+		}
 
 	}
 

@@ -5,11 +5,14 @@ import * as shell from 'shelljs'
 import * as path from 'path'
 import * as fs from 'fs'
 import * as ethers from 'ethers'
+const ganache = require("ganache-cli")
+var Web3 = require('web3');
+var web3 = new Web3('http://localhost:8545');
 
 const genAccounts = (
     num: number,
     mnemonic: string,
-    provider: ethers.providers.JsonRpcProvider,
+	provider: ethers.providers.JsonRpcProvider,
 ) => {
     let accounts: ethers.Wallet[] = []
 
@@ -28,9 +31,10 @@ let note
 let merchant
 let buyer
 
-const tokenName = "hardwareToken"
-const tokenSymbol = "HWT"
-const tokenDecimal = 10
+const tokenName = "token"
+const tokenSymbol = "TKN"
+const tokenDecimal = 30
+const amount = 1
 
 const execute = (cmd: string) => {
     const result = shell.exec(cmd, { silent: false })
@@ -68,28 +72,7 @@ const compileAndDeploy = async (
 	const solcCmd = `${solcBinaryPath} -o ${abiDir} ${solDir}/*.sol --overwrite --optimize --abi --bin`
 	const result = execute(solcCmd)
 
-    // deploy HardwareNotes
-    const hardwareNotesAB = readAbiAndBin('HardwareNotes')
-    const hardwareNotesContractFactory = new ethers.ContractFactory(hardwareNotesAB.abi, hardwareNotesAB.bin, deployerWallet)
-    const hardwareNotesContract = await hardwareNotesContractFactory.deploy(
-        {gasPrice: ethers.utils.parseUnits('10', 'gwei')},
-    )
-    await hardwareNotesContract.deployed()
-
-    console.log('Deployed HardwareNotes at', hardwareNotesContract.address)
-
-    // deploy tokenContract
-    const tokenAB = readAbiAndBin('Token')
-    const tokenContractFactory = new ethers.ContractFactory(tokenAB.abi, tokenAB.bin, deployerWallet)
-    const tokenContract = await tokenContractFactory.deploy(
-		tokenName, tokenSymbol, tokenDecimal,
-        {gasPrice: ethers.utils.parseUnits('10', 'gwei')},
-    )
-    await tokenContract.deployed()
-
-    console.log('Deployed HardwareToken at', tokenContract.address)
-
-
+	// fund accounts
     const numEth = 2
     const addressesToFund = [
 		manufacturer.address,
@@ -113,8 +96,31 @@ const compileAndDeploy = async (
         console.log(`Gave away ${numEth} ETH to`, address)
     }
 
+
+    // deploy HardwareNotes
+    const hardwareNotesAB = readAbiAndBin('HardwareNotes')
+    const hardwareNotesContractFactory = new ethers.ContractFactory(hardwareNotesAB.abi, hardwareNotesAB.bin, deployerWallet)
+    const hardwareNotesContract = await hardwareNotesContractFactory.deploy(
+        {gasPrice: ethers.utils.parseUnits('10', 'gwei')},
+    )
+    await hardwareNotesContract.deployed()
+
+    console.log('Deployed HardwareNotes at', hardwareNotesContract.address)
+
+    // deploy Token
+    const tokenAB = readAbiAndBin('Token')
+    const tokenContractFactory = new ethers.ContractFactory(tokenAB.abi, tokenAB.bin, buyer)
+    const tokenContract = await tokenContractFactory.deploy(
+		tokenName, tokenSymbol, tokenDecimal,
+        {gasPrice: ethers.utils.parseUnits('10', 'gwei')},
+    )
+    await tokenContract.deployed()
+
+    console.log('Deployed HardwareToken at', tokenContract.address)
+
 	return {
-		HardwareNotes: hardwareNotesContract
+		HardwareNotes: hardwareNotesContract,
+		Token: tokenContract
 	}
 }
 
@@ -166,7 +172,7 @@ const main = async () => {
 
     // generate provider and walllets
     const provider = new ethers.providers.JsonRpcProvider(rpcUrl)
-    const wallets = genAccounts(5, config.chain.mnemonic, provider)
+	const wallets = genAccounts(5, config.chain.mnemonic, provider)
 
     const deployerWallet: ethers.Wallet = wallets[0]
 	const manufacturer: ethers.Wallet = wallets[1]
@@ -179,14 +185,15 @@ const main = async () => {
         abiDir,
         solDir,
         solcBinaryPath,
-        provider,
+		provider,
         deployerWallet,
 		manufacturer,
 		// note,
 		merchant,
 		buyer
     )
-    const hardwareNotesContract = contracts.HardwareNotes
+	const hardwareNotesContract = contracts.HardwareNotes
+	const tokenContract = contracts.Token
 
     console.log()
 	console.log('========================================')
@@ -202,11 +209,18 @@ const main = async () => {
     console.log()
 	console.log('========================================')
 	
+	// buyer approves HardwareNotes.sol to call transferFrom
+	console.log(`Approving HardwareNotes contract to  call transferFrom`)
+	const tokenContractWithBuyer = tokenContract.connect(buyer)
+	const approveTx = await tokenContractWithBuyer.approve(hardwareNotesContract.address, amount)
+	await approveTx.wait()
+	console.log(`Buyer ${buyer.address} approved HardwareNotes contract ${hardwareNotesContract.address} to transfer ${amount} on Token contract ${tokenContract.address}` )
+
 	// buyer deposits into note
 	console.log(`Depositing into note ${note.address}`)
 	const hardwareNotesContractWithBuyer = hardwareNotesContract.connect(buyer)
 	const depositTx = await hardwareNotesContractWithBuyer.deposit(
-		manufacturer.address, 0, 0, 0, deployerWallet.address, 1, 0, 1 
+		manufacturer.address, 0, 0, 0, tokenContract.address, amount, 10000, 100000000 
 	)
 	await depositTx.wait()
 	console.log(` Buyer ${buyer.address} deposited into note ${note.address} via transaction ${depositTx.hash} `)
@@ -231,22 +245,33 @@ const main = async () => {
 	console.log('========================================')
 
 	// fast forward in time
-	let blockNumberBefore = await provider.getBlockNumber()
-	console.log(blockNumberBefore)
+	let blockBefore = await provider.getBlock(provider.getBlockNumber())
+	console.log('timestampBefore', blockBefore.timestamp)
 
-	let time = 1000
-	const timeTravel = async (time) => {
-		await provider.send('evm_increaseTime', time)
-		await provider.send('evm_mine', [])
+	let time = 1000000
+	async function increaseTime(time) {
+		await web3.currentProvider.send({
+			jsonrpc: '2.0',
+			method: 'evm_increaseTime',
+			params: [time],
+			id: new Date().getSeconds(),
+		}, ()=>{})
+		
+		await web3.currentProvider.send({
+			jsonrpc: '2.0',
+			method: 'evm_mine',
+			params: [],
+			id: new Date().getSeconds(),
+		}, ()=>{})
+
+		let blockAfter = await provider.getBlock(provider.getBlockNumber())
+		console.log('timestamp after', blockAfter.timestamp)
+		console.log()
+		console.log('========================================')
+
 	}
-
-	const timeTravelTx = await timeTravel(time)
-
-	let blockNumberAfter = await provider.getBlockNumber()
-	console.log(blockNumberAfter)
-
-    console.log()
-	console.log('========================================')
+	
+	let timeTravel = await increaseTime(time)
 	
 	// merchant calls withdraw with another signed message from the note
 	let blockNumber2 = await provider.getBlockNumber()
