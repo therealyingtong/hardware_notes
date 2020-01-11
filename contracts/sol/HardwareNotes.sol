@@ -117,7 +117,7 @@ contract HardwareNotes {
 
 	}
 
-	function checkSig(uint batchId, uint hardwareId, uint noteId, uint blockNum, bytes32 blockHash, uint8 v, bytes32 r, bytes32 s) public {
+	function checkSig(uint batchId, uint hardwareId, uint noteId, uint blockNum, bytes32 blockHash, uint8 v, bytes32 r, bytes32 s) public view {
 		require(blockhash(blockNum) == blockHash, "invalid block (not in last 256 blocks)");
 
 		note memory curNote = notes[noteId];
