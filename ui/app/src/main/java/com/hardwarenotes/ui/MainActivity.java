@@ -3,38 +3,46 @@ package com.hardwarenotes.ui;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.TargetApi;
+import android.app.PendingIntent;
 import android.content.Intent;
+import android.nfc.Tag;
+import android.nfc.tech.Ndef;
+import android.nfc.NdefMessage;
+import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
-import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.widget.EditText;
-
-import java.io.IOException;
 
 import im.status.keycard.android.NFCCardManager;
 import im.status.keycard.applet.ApplicationInfo;
 import im.status.keycard.applet.KeycardCommandSet;
-import im.status.keycard.io.APDUException;
 import im.status.keycard.io.CardListener;
 import im.status.keycard.io.CardChannel;
-
-import static android.provider.AlarmClock.EXTRA_MESSAGE;
 
 public class MainActivity extends AppCompatActivity {
 
     private NfcAdapter nfcAdapter;
     private NFCCardManager cardManager;
+    PendingIntent mPendingIntent;
+    Tag tag;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        Intent intent = getIntent();
+        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(intent.getAction())) {
+            tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+        }
+
         // Get the Android NFC default adapter
         nfcAdapter = NfcAdapter.getDefaultAdapter(this);
+        mPendingIntent = PendingIntent.getActivity(this, 0, new Intent(this,
+                getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0);
 
         // Create the NFCCardManager, this class is provided by the Keycard SDK and handles connections to the card
         cardManager = new NFCCardManager();
@@ -46,31 +54,41 @@ public class MainActivity extends AppCompatActivity {
             public void onConnected(CardChannel cardChannel) {
                 KeycardCommandSet cmdSet = new KeycardCommandSet(cardChannel);
 
+                NdefMessage msg = new NdefMessage(
+                    new NdefRecord[] {
+                            NdefRecord.createApplicationRecord("com.hardwarenotes.ui")
+                    }
+                );
+
+                Ndef ndef = Ndef.get(tag);
+
                 try {
+                    ndef.writeNdefMessage(msg);
+
                     ApplicationInfo info = new ApplicationInfo(cmdSet.select().checkOK().getData());
-                    // This method tells if the card is initialized (has a PIN, PUK and pairing password). If it is not, it must be
-                    // initialized and no other operation is possible. Note that initialization touches only credentials to authenticate
-                    // the user or the client, but does not touch the creation of a wallet on the card
-                    info.isInitializedCard();
-
-                    // Returns the instance UID of the applet. This can be used to identify this specific applet instance, very
-                    // useful when storing instance-specific data on the client (pairing info, cached data, etc).
-                    info.getInstanceUID();
-
-                    // Returns the version of the applet.
-                    info.getAppVersion();
-
-                    // Returns the number of free pairing slots. If you are not yet paired with the card, it helps you know if you can still
-                    // pair or not
-                    info.getFreePairingSlots();
-
-                    // Tells if the card has a wallet or not. If no wallet is available, you must create once before you can perform most
-                    // operations on the card
-                    info.hasMasterKey();
-
-                    // Returns the UID of the master key of the wallet. The UID is value generated starting from the public key and is
-                    // useful to identify if the card has the expected wallet.
-                    info.getKeyUID();
+//                    // This method tells if the card is initialized (has a PIN, PUK and pairing password). If it is not, it must be
+//                    // initialized and no other operation is possible. Note that initialization touches only credentials to authenticate
+//                    // the user or the client, but does not touch the creation of a wallet on the card
+//                    info.isInitializedCard();
+//
+//                    // Returns the instance UID of the applet. This can be used to identify this specific applet instance, very
+//                    // useful when storing instance-specific data on the client (pairing info, cached data, etc).
+//                    info.getInstanceUID();
+//
+//                    // Returns the version of the applet.
+//                    info.getAppVersion();
+//
+//                    // Returns the number of free pairing slots. If you are not yet paired with the card, it helps you know if you can still
+//                    // pair or not
+//                    info.getFreePairingSlots();
+//
+//                    // Tells if the card has a wallet or not. If no wallet is available, you must create once before you can perform most
+//                    // operations on the card
+//                    info.hasMasterKey();
+//
+//                    // Returns the UID of the master key of the wallet. The UID is value generated starting from the public key and is
+//                    // useful to identify if the card has the expected wallet.
+//                    info.getKeyUID();
 
                     // Usually, you want to check if the card is initialized before trying to initialize it, otherwise you will receive an
 //                // error.
@@ -90,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
                 // Card is disconnected (was removed from the field). You can perform cleanup here.
             }
         });
-        cardManager.start();
+//        cardManager.start();
     }
 
     @Override
@@ -101,7 +119,9 @@ public class MainActivity extends AppCompatActivity {
         // We need to enable the reader on resume.
         if (nfcAdapter != null) {
             nfcAdapter.enableReaderMode(this, this.cardManager, NfcAdapter.FLAG_READER_NFC_A | NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK, null);
+//            nfcAdapter.enableForegroundDispatch(this, mPendingIntent, null, null);
         }
+
     }
 
     @Override
@@ -112,7 +132,9 @@ public class MainActivity extends AppCompatActivity {
         // We disable the reader on pause to allow other apps to use it.
         if (nfcAdapter != null) {
             nfcAdapter.disableReaderMode(this);
+//            nfcAdapter.disableForegroundDispatch(this);
         }
+
     }
 
     public void clickHardwareNotes(View view){
