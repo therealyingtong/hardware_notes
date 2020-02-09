@@ -2,6 +2,8 @@ package com.hardwarenotes.ui;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.security.interfaces.ECPublicKey;
+
 import android.annotation.TargetApi;
 import android.app.PendingIntent;
 import android.content.Intent;
@@ -12,21 +14,27 @@ import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Base64;
 import android.view.View;
 import android.webkit.WebView;
 
 import im.status.keycard.android.NFCCardManager;
 import im.status.keycard.applet.ApplicationInfo;
+import im.status.keycard.applet.CashApplicationInfo;
 import im.status.keycard.applet.KeycardCommandSet;
+import im.status.keycard.applet.CashCommandSet;
 import im.status.keycard.io.CardListener;
 import im.status.keycard.io.CardChannel;
+
 
 public class MainActivity extends AppCompatActivity {
 
     private NfcAdapter nfcAdapter;
     private NFCCardManager cardManager;
     PendingIntent mPendingIntent;
-    Tag tag;
+	Tag tag;
+    public static String pubKeyString;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,7 +60,9 @@ public class MainActivity extends AppCompatActivity {
         cardManager.setCardListener(new CardListener() {
 //            @Override
             public void onConnected(CardChannel cardChannel) {
-                KeycardCommandSet cmdSet = new KeycardCommandSet(cardChannel);
+				// KeycardCommandSet cmdSet = new KeycardCommandSet(cardChannel);
+
+				CashCommandSet cashCmdSet = new CashCommandSet(cardChannel);
 
                 NdefMessage msg = new NdefMessage(
                     new NdefRecord[] {
@@ -65,38 +75,20 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     ndef.writeNdefMessage(msg);
 
-                    ApplicationInfo info = new ApplicationInfo(cmdSet.select().checkOK().getData());
-//                    // This method tells if the card is initialized (has a PIN, PUK and pairing password). If it is not, it must be
-//                    // initialized and no other operation is possible. Note that initialization touches only credentials to authenticate
-//                    // the user or the client, but does not touch the creation of a wallet on the card
-//                    info.isInitializedCard();
-//
-//                    // Returns the instance UID of the applet. This can be used to identify this specific applet instance, very
-//                    // useful when storing instance-specific data on the client (pairing info, cached data, etc).
-//                    info.getInstanceUID();
-//
-//                    // Returns the version of the applet.
-//                    info.getAppVersion();
-//
-//                    // Returns the number of free pairing slots. If you are not yet paired with the card, it helps you know if you can still
-//                    // pair or not
-//                    info.getFreePairingSlots();
-//
-//                    // Tells if the card has a wallet or not. If no wallet is available, you must create once before you can perform most
-//                    // operations on the card
-//                    info.hasMasterKey();
-//
-//                    // Returns the UID of the master key of the wallet. The UID is value generated starting from the public key and is
-//                    // useful to identify if the card has the expected wallet.
-//                    info.getKeyUID();
+					CashApplicationInfo info = new CashApplicationInfo(cashCmdSet.select().checkOK().getData());
 
-                    // Usually, you want to check if the card is initialized before trying to initialize it, otherwise you will receive an
-//                // error.
-//                if (!info.isInitializedCard()) {
-//                    // The PIN must be 6 digits, the PUK 12 digits and the pairing password can be any password.
-//                    // All parameters are strings
-//                    cmdSet.init(pin, puk, pairingPassword).checkOK();
-//                }
+					// Returns the public key of the wallet's keypair. This can be used to calculate the Ethereum address.
+					byte[] pubKey = info.getPubKey();
+                    pubKeyString = Base64.encodeToString(pubKey, Base64.DEFAULT);
+
+
+                    // Returns the version of the applet.
+					info.getAppVersion();
+
+					// Returns arbitrary data which has been set either at applet installation or through the STORE DATA command in the Keycard applet
+					info.getPubData();
+
+
                 } catch (Exception IOException) {
 
                 }
@@ -135,6 +127,14 @@ public class MainActivity extends AppCompatActivity {
 //            nfcAdapter.disableForegroundDispatch(this);
         }
 
+    }
+
+    public void clickNoteInfo(View view){
+        setContentView(R.layout.activity_display_pubkey);
+        WebView wv = (WebView) findViewById(R.id.webview);
+        wv.loadData(pubKeyString, "text/html", "UTF-8");
+        wv.getSettings().setLoadWithOverviewMode(true);
+        wv.getSettings().setUseWideViewPort(true);
     }
 
     public void clickHardwareNotes(View view){
