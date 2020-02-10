@@ -9,7 +9,6 @@ import android.nfc.Tag;
 import android.nfc.NfcAdapter;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
@@ -22,20 +21,15 @@ import com.google.common.collect.Iterables;
 import org.bouncycastle.util.encoders.Hex;
 
 import org.web3j.abi.EventEncoder;
-import org.web3j.abi.FunctionReturnDecoder;
-import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.crypto.Keys;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.methods.response.EthLog;
 import org.web3j.protocol.http.HttpService;
+import org.web3j.tuples.generated.Tuple10;
 
 import java.math.BigInteger;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import im.status.keycard.android.NFCCardManager;
 import im.status.keycard.applet.CashApplicationInfo;
@@ -61,11 +55,17 @@ public class MainActivity extends AppCompatActivity {
     public static String withdrawDelay;
     public static String withdrawTimeout;
 
-    public static final String contract = "0x9fE12268Fa4A3D1be7451b8b3825469A14724ceD";
-	public static final int startBlock = 16681062;
+    public static final String contract = "0xa2ff8dAEf58467b2Ac3c93c955449EE1342F6F9E";
+	public static final int startBlock = 16685179;
 //	public static final String provider = "https://kovan.infura.io/v3/1bef5b4350a648c7a9439ea7bc9f8846";
     public static final String provider = "https://kovan.poa.network/";
 	public static final String adminPrivKey = "0x7e84cb2db4e2019719853616233be0f3fed271a8f4668534d485348dbd333424";
+
+    public static final Credentials credentials = Credentials.create(adminPrivKey);
+
+    public static final Web3j web3j = Web3j.build(new HttpService(provider));
+    public static final HardwareNotes hardwareNotes = HardwareNotes.load(
+            contract, web3j, credentials, BigInteger.valueOf(100000), BigInteger.valueOf(100000));
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,6 +105,7 @@ public class MainActivity extends AppCompatActivity {
                     pubKey = info.getPubKey();
                     setAddress(pubKey);
                     getDepositEvent(noteAddress);
+                    getNote(Integer.parseInt(noteId));
 
 //                    new Timer().schedule(new TimerTask() {
 //                        @Override
@@ -167,12 +168,6 @@ public class MainActivity extends AppCompatActivity {
 
         Log.i("getDepositEvent", "getDepositEvent");
 
-        Credentials credentials = Credentials.create(adminPrivKey);
-
-        Web3j web3j = Web3j.build(new HttpService(provider));
-        HardwareNotes hardwareNotes = HardwareNotes.load(
-                contract, web3j, credentials, BigInteger.valueOf(100000), BigInteger.valueOf(100000));
-
         EthFilter eventFilter = new EthFilter(
                 DefaultBlockParameter.valueOf(BigInteger.valueOf(startBlock)), // filter: from block
                 DefaultBlockParameter.valueOf("latest"), // filter: to block
@@ -199,12 +194,17 @@ public class MainActivity extends AppCompatActivity {
             manufacturerAddress = tokens[0];
             batchId = tokens[1];
             hardwareId = tokens[2];
-            noteId = tokens[3];
-            token = tokens[4];
+            noteId = Integer.toHexString(Integer.parseInt(tokens[3]));
+            token = Integer.toHexString(Integer.parseInt(tokens[4]));
             amount = tokens[5];
             withdrawDelay = tokens[6];
             withdrawTimeout = tokens[7];
         });
+    }
+
+    public static void getNote(int noteId) throws Exception {
+        Tuple10<String, BigInteger, BigInteger, BigInteger, String, BigInteger, BigInteger, BigInteger, BigInteger, Boolean> result = hardwareNotes.getNote(BigInteger.valueOf(noteId)).send();
+        Log.i("result", result.getValue1());
     }
 
     public void clickNoteInfo(View view) throws Exception {

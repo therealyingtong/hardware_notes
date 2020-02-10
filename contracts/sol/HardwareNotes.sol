@@ -150,4 +150,21 @@ contract HardwareNotes {
 
 	}
 
+	function getNote(uint _noteId) public view returns(
+		address manufacturer,
+		uint batchId,
+		uint hardwareId,
+		uint noteId,
+		address token,
+		uint amount,
+		uint withdrawDelay,
+		uint withdrawTimeout,
+		uint withdrawStart,
+		bool isInFlight
+	) {
+		note memory _note = notes[_noteId];
+		return (_note.manufacturer, _note.batchId, _note.hardwareId, _note.noteId, _note.token,
+		_note.amount, _note.withdrawDelay, _note.withdrawTimeout, _note.withdrawStart, _note.isInFlight);
+	}
+
 }

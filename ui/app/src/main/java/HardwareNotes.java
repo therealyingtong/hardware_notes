@@ -1,5 +1,3 @@
-package com.hardwarenotes.ui;
-
 import io.reactivex.Flowable;
 import io.reactivex.functions.Function;
 import java.math.BigInteger;
