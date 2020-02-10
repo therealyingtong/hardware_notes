@@ -171,11 +171,13 @@ public class MainActivity extends AppCompatActivity {
         String DEPOSIT_EVENT_HASH = EventEncoder.encode(hardwareNotes.DEPOSIT_EVENT);
 
         eventFilter.addSingleTopic(DEPOSIT_EVENT_HASH); // filter: event type (topic[0])
-//        eventFilter.addOptionalTopics(note_address);
+        eventFilter.addOptionalTopics("0x000000000000000000000000"+note_address);
 
         web3j.ethLogFlowable(eventFilter).subscribe(log -> {
             String eventHash = log.getTopics().get(0);
             Log.i("eventHash", eventHash);
+
+            depositData = log.getData();
         });
     }
 
