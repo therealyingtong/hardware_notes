@@ -9,7 +9,7 @@ contract HardwareNotes {
 
 	ERC20Interface public tokenContract;
 
-	mapping (address => mapping(uint256 => address[])) public hardware;
+	mapping (address => mapping(uint256 => address[])) public hardware; // manufacturer => batchId => array of note addresses in batch
 	mapping (uint256 => uint256) ETHBalance; // map noteId to value
 
 	struct note {
@@ -27,6 +27,18 @@ contract HardwareNotes {
 
 	note[] notes;
 
+	event Deposit(
+		address indexed _noteAddress,
+		address manufacturer,
+		uint batchId,
+		uint hardwareId,
+		uint noteId,
+		address token,
+		uint amount,
+		uint withdrawDelay,
+		uint withdrawTimeout
+	);
+
 	function registerBatch(uint256 batch, address[] memory pubKeys) public {
 
 		uint i;
@@ -39,7 +51,6 @@ contract HardwareNotes {
 		address manufacturer,
 		uint batchId,
 		uint hardwareId,
-		uint noteId,
 		address token,
 		uint amount,
 		uint withdrawDelay,
@@ -47,6 +58,8 @@ contract HardwareNotes {
 	public payable {
 
 		require(withdrawTimeout > withdrawDelay, "withdrawTimeout must be larger than withdrawDelay");
+
+		uint noteId = notes.length;
 
 		// ETH deposit
 		if (token == address(0)){
@@ -67,6 +80,13 @@ contract HardwareNotes {
 			withdrawDelay, withdrawTimeout, 0, false
 		);
 		notes.push(newNote);
+
+		address noteAddress = hardware[manufacturer][batchId][hardwareId];
+
+		emit Deposit(
+			noteAddress,
+			manufacturer, batchId, hardwareId, noteId, token, amount, withdrawDelay, withdrawTimeout
+		);
 	}
 
 	function signalWithdraw(

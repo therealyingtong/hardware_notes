@@ -16,17 +16,24 @@ import android.widget.TextView;
 
 import org.bouncycastle.util.encoders.Hex;
 
+import org.web3j.abi.EventEncoder;
 import org.web3j.crypto.Keys;
+import org.web3j.protocol.core.DefaultBlockParameter;
+import org.web3j.protocol.core.methods.request.EthFilter;
+import org.web3j.protocol.rx.Web3jRx;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.http.HttpService;
+import org.web3j.tx.Contract;
 import org.web3j.tx.Transfer;
 import org.web3j.tx.gas.ContractGasProvider;
 import org.web3j.tx.gas.DefaultGasProvider;
 import org.web3j.utils.Convert;
 import org.web3j.utils.Numeric;
+
+import java.math.BigInteger;
 
 import im.status.keycard.android.NFCCardManager;
 import im.status.keycard.applet.CashApplicationInfo;
@@ -43,6 +50,8 @@ public class MainActivity extends AppCompatActivity {
 	Tag tag;
 	public static byte[] pubKey;
 	public static String address;
+	public static String contract = "0x9fE12268Fa4A3D1be7451b8b3825469A14724ceD";
+	public static int startBlock = 16681062;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
 
                     CashApplicationInfo info = new CashApplicationInfo(cashCmdSet.select().checkOK().getData());
                     pubKey = info.getPubKey();
-                    setAddress(pubKey);
+                    getAddress(pubKey);
 
                 } catch (Exception IOException) {
 
@@ -122,13 +131,24 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public static void setAddress(byte[] pubKey) throws Exception {
+    public static void getAddress(byte[] pubKey) throws Exception {
 
         byte[] addressBytes = Keys.getAddress(pubKey);
         address = Hex.toHexString(addressBytes);
-        Log.i("setAddress", address);
+        Log.i("getAddress", address);
+
+    }
+
+    public static void getDepositEvent(String note_address) throws Exception {
 
 
+        EthFilter eventFilter = new EthFilter(
+                DefaultBlockParameter.valueOf(BigInteger.valueOf(startBlock)), // filter: from block
+                DefaultBlockParameter.valueOf("latest"), // filter: to block
+                contract // filter: smart contract address
+        );
+        eventFilter.addSingleTopic(EventEncoder.encode(Contract.Deposit)); // filter: event type (topic[0])
+        eventFilter.addOptionalTopics(note_address);
     }
 
     public void clickNoteInfo(View view) throws Exception {

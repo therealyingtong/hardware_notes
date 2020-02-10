@@ -36,15 +36,16 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 exports.__esModule = true;
-var su_config_1 = require("su-config");
+// import * as crypto from 'crypto'
+// import { config } from 'su-config'
 var argparse_1 = require("argparse");
 var shell = require("shelljs");
 var path = require("path");
 var fs = require("fs");
 var ethers = require("ethers");
-var ganache = require("ganache-cli");
+// const ganache = require("ganache-cli")
 var Web3 = require('web3');
-var web3 = new Web3('http://localhost:8545');
+var config = { "env": "kovan-dev", "chain": { "url": "https://kovan.infura.io/v3/1bef5b4350a648c7a9439ea7bc9f8846", "chainId": 42, "mnemonic": "drink culture salad heavy sand blossom federal right tonight anchor tackle lunch" } };
 var genAccounts = function (num, mnemonic, provider) {
     var accounts = [];
     for (var i = 0; i < num; i++) {
@@ -151,39 +152,7 @@ merchant, buyer) {
     });
 };
 var main = function () { return __awaiter(void 0, void 0, void 0, function () {
-    function increaseTime(time) {
-        return __awaiter(this, void 0, void 0, function () {
-            var blockAfter;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, web3.currentProvider.send({
-                            jsonrpc: '2.0',
-                            method: 'evm_increaseTime',
-                            params: [time],
-                            id: new Date().getSeconds()
-                        }, function () { })];
-                    case 1:
-                        _a.sent();
-                        return [4 /*yield*/, web3.currentProvider.send({
-                                jsonrpc: '2.0',
-                                method: 'evm_mine',
-                                params: [],
-                                id: new Date().getSeconds()
-                            }, function () { })];
-                    case 2:
-                        _a.sent();
-                        return [4 /*yield*/, provider.getBlock(provider.getBlockNumber())];
-                    case 3:
-                        blockAfter = _a.sent();
-                        console.log('timestamp after', blockAfter.timestamp);
-                        console.log();
-                        console.log('========================================');
-                        return [2 /*return*/];
-                }
-            });
-        });
-    }
-    var parser, args, abiDir, solDir, solcBinaryPath, rpcUrl, provider, wallets, deployerWallet, manufacturer, note, merchant, buyer, contracts, hardwareNotesContract, tokenContract, hardwareNotesContractWithManufacturer, registerTx, amount, delay, timeout, tokenContractWithBuyer, approveTx, hardwareNotesContractWithBuyer, depositTx, blockNumber1, block1, blockhash1, flatSig1, sig1, hardwareNotesContractWithMerchant, signalWithdrawTx, blockBefore, time, timeTravel, blockNumber2, block2, blockhash2, flatSig2, sig2, withdrawTx;
+    var parser, args, abiDir, solDir, solcBinaryPath, rpcUrl, web3, provider, wallets, deployerWallet, manufacturer, note, merchant, buyer, contracts, hardwareNotesContract, tokenContract;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -210,9 +179,10 @@ var main = function () { return __awaiter(void 0, void 0, void 0, function () {
                 abiDir = path.resolve(args.out);
                 solDir = path.resolve(args.input);
                 solcBinaryPath = args.solc ? args.solc : 'solc';
-                rpcUrl = args.rpcUrl ? args.rpcUrl : su_config_1.config.chain.url;
+                rpcUrl = args.rpcUrl ? args.rpcUrl : config.chain.url;
+                web3 = new Web3(rpcUrl);
                 provider = new ethers.providers.JsonRpcProvider(rpcUrl);
-                wallets = genAccounts(5, su_config_1.config.chain.mnemonic, provider);
+                wallets = genAccounts(5, config.chain.mnemonic, provider);
                 deployerWallet = wallets[0];
                 manufacturer = wallets[1];
                 note = wallets[2];
@@ -225,96 +195,6 @@ var main = function () { return __awaiter(void 0, void 0, void 0, function () {
                 contracts = _a.sent();
                 hardwareNotesContract = contracts.HardwareNotes;
                 tokenContract = contracts.Token;
-                console.log();
-                console.log('========================================');
-                // manufacturer registers a batch of notes
-                console.log('Registering batch 0');
-                hardwareNotesContractWithManufacturer = hardwareNotesContract.connect(manufacturer);
-                return [4 /*yield*/, hardwareNotesContractWithManufacturer.registerBatch(0, [note.address])];
-            case 2:
-                registerTx = _a.sent();
-                return [4 /*yield*/, registerTx.wait()];
-            case 3:
-                _a.sent();
-                console.log(" Manufacturer " + manufacturer.address + " registered batch [" + note.address + "] via transaction " + registerTx.hash + " ");
-                console.log();
-                console.log('========================================');
-                amount = 10;
-                delay = 10000;
-                timeout = 100000000;
-                console.log("Approving HardwareNotes contract to  call transferFrom");
-                tokenContractWithBuyer = tokenContract.connect(buyer);
-                return [4 /*yield*/, tokenContractWithBuyer.approve(hardwareNotesContract.address, amount)];
-            case 4:
-                approveTx = _a.sent();
-                return [4 /*yield*/, approveTx.wait()];
-            case 5:
-                _a.sent();
-                console.log("Buyer " + buyer.address + " approved HardwareNotes contract " + hardwareNotesContract.address + " to transfer " + amount + " on Token contract " + tokenContract.address);
-                // buyer deposits into note
-                console.log("Depositing into note " + note.address);
-                hardwareNotesContractWithBuyer = hardwareNotesContract.connect(buyer);
-                return [4 /*yield*/, hardwareNotesContractWithBuyer.deposit(manufacturer.address, 0, 0, 0, tokenContract.address, amount, delay, timeout)];
-            case 6:
-                depositTx = _a.sent();
-                return [4 /*yield*/, depositTx.wait()];
-            case 7:
-                _a.sent();
-                console.log(" Buyer " + buyer.address + " deposited into note " + note.address + " via transaction " + depositTx.hash + " ");
-                console.log();
-                console.log('========================================');
-                return [4 /*yield*/, provider.getBlockNumber()];
-            case 8:
-                blockNumber1 = _a.sent();
-                return [4 /*yield*/, provider.getBlock(blockNumber1)];
-            case 9:
-                block1 = _a.sent();
-                blockhash1 = ethers.utils.arrayify(block1.hash);
-                console.log('typeof blockhash1', typeof blockhash1);
-                return [4 /*yield*/, note.signMessage(blockhash1)];
-            case 10:
-                flatSig1 = _a.sent();
-                sig1 = ethers.utils.splitSignature(flatSig1);
-                hardwareNotesContractWithMerchant = hardwareNotesContract.connect(merchant);
-                return [4 /*yield*/, hardwareNotesContractWithMerchant.signalWithdraw(0, 0, 0, blockNumber1, blockhash1, sig1.v, sig1.r, sig1.s)];
-            case 11:
-                signalWithdrawTx = _a.sent();
-                return [4 /*yield*/, signalWithdrawTx.wait()];
-            case 12:
-                _a.sent();
-                console.log(" Merchant signalled withdraw for note " + note.address + " via transaction " + signalWithdrawTx.hash);
-                console.log();
-                console.log('========================================');
-                return [4 /*yield*/, provider.getBlock(provider.getBlockNumber())];
-            case 13:
-                blockBefore = _a.sent();
-                console.log('timestampBefore', blockBefore.timestamp);
-                time = 1000000;
-                return [4 /*yield*/, increaseTime(time)
-                    // merchant calls withdraw with another signed message from the note
-                ];
-            case 14:
-                timeTravel = _a.sent();
-                return [4 /*yield*/, provider.getBlockNumber()];
-            case 15:
-                blockNumber2 = _a.sent();
-                return [4 /*yield*/, provider.getBlock(blockNumber2)];
-            case 16:
-                block2 = _a.sent();
-                return [4 /*yield*/, ethers.utils.arrayify(block2.hash)];
-            case 17:
-                blockhash2 = _a.sent();
-                return [4 /*yield*/, note.signMessage(blockhash2)];
-            case 18:
-                flatSig2 = _a.sent();
-                sig2 = ethers.utils.splitSignature(flatSig2);
-                return [4 /*yield*/, hardwareNotesContractWithMerchant.withdraw(0, 0, 0, blockNumber2, blockhash2, sig2.v, sig2.r, sig2.s, merchant.address)];
-            case 19:
-                withdrawTx = _a.sent();
-                return [4 /*yield*/, withdrawTx.wait()];
-            case 20:
-                _a.sent();
-                console.log(" Merchant called withdraw for note " + note.address + " to recipient " + merchant.address + " via transaction " + withdrawTx.hash);
                 return [2 /*return*/];
         }
     });

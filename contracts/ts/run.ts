@@ -1,13 +1,14 @@
-import * as crypto from 'crypto'
-import { config } from 'su-config'
+// import * as crypto from 'crypto'
+// import { config } from 'su-config'
 import { ArgumentParser } from 'argparse'
 import * as shell from 'shelljs'
 import * as path from 'path'
 import * as fs from 'fs'
 import * as ethers from 'ethers'
-const ganache = require("ganache-cli")
+// const ganache = require("ganache-cli")
 var Web3 = require('web3');
-var web3 = new Web3('http://localhost:8545');
+
+const config = {"env":"kovan-dev","chain":{"url":"https://kovan.infura.io/v3/1bef5b4350a648c7a9439ea7bc9f8846","chainId":42,"mnemonic":"drink culture salad heavy sand blossom federal right tonight anchor tackle lunch"}}
 
 const genAccounts = (
     num: number,
@@ -168,6 +169,8 @@ const main = async () => {
     const solcBinaryPath = args.solc ? args.solc : 'solc'
 
     const rpcUrl = args.rpcUrl ? args.rpcUrl : config.chain.url
+	var web3 = new Web3(rpcUrl);
+
 
     // generate provider and walllets
     const provider = new ethers.providers.JsonRpcProvider(rpcUrl)
@@ -194,103 +197,103 @@ const main = async () => {
 	const hardwareNotesContract = contracts.HardwareNotes
 	const tokenContract = contracts.Token
 
-    console.log()
-	console.log('========================================')
+    // console.log()
+	// console.log('========================================')
 	
-	// manufacturer registers a batch of notes
-	console.log('Registering batch 0')
-	const hardwareNotesContractWithManufacturer = hardwareNotesContract.connect(manufacturer)
-	const registerTx = await hardwareNotesContractWithManufacturer.registerBatch(0, [note.address])
-	await registerTx.wait()
-	console.log(` Manufacturer ${manufacturer.address} registered batch [${note.address}] via transaction ${registerTx.hash} `)
+	// // manufacturer registers a batch of notes
+	// console.log('Registering batch 0')
+	// const hardwareNotesContractWithManufacturer = hardwareNotesContract.connect(manufacturer)
+	// const registerTx = await hardwareNotesContractWithManufacturer.registerBatch(0, [note.address])
+	// await registerTx.wait()
+	// console.log(` Manufacturer ${manufacturer.address} registered batch [${note.address}] via transaction ${registerTx.hash} `)
 
 
-    console.log()
-	console.log('========================================')
+    // console.log()
+	// console.log('========================================')
 	
-	// buyer approves HardwareNotes.sol to call transferFrom
+	// // buyer approves HardwareNotes.sol to call transferFrom
 
-	const amount = 10
-	const delay = 10000
-	const timeout = 100000000
+	// const amount = 10
+	// const delay = 10000
+	// const timeout = 100000000
 
-	console.log(`Approving HardwareNotes contract to  call transferFrom`)
-	const tokenContractWithBuyer = tokenContract.connect(buyer)
-	const approveTx = await tokenContractWithBuyer.approve(hardwareNotesContract.address, amount)
-	await approveTx.wait()
-	console.log(`Buyer ${buyer.address} approved HardwareNotes contract ${hardwareNotesContract.address} to transfer ${amount} on Token contract ${tokenContract.address}` )
+	// console.log(`Approving HardwareNotes contract to  call transferFrom`)
+	// const tokenContractWithBuyer = tokenContract.connect(buyer)
+	// const approveTx = await tokenContractWithBuyer.approve(hardwareNotesContract.address, amount)
+	// await approveTx.wait()
+	// console.log(`Buyer ${buyer.address} approved HardwareNotes contract ${hardwareNotesContract.address} to transfer ${amount} on Token contract ${tokenContract.address}` )
 
-	// buyer deposits into note
-	console.log(`Depositing into note ${note.address}`)
-	const hardwareNotesContractWithBuyer = hardwareNotesContract.connect(buyer)
-	const depositTx = await hardwareNotesContractWithBuyer.deposit(
-		manufacturer.address, 0, 0, 0, tokenContract.address, amount, delay, timeout 
-	)
-	await depositTx.wait()
-	console.log(` Buyer ${buyer.address} deposited into note ${note.address} via transaction ${depositTx.hash} `)
+	// // buyer deposits into note
+	// console.log(`Depositing into note ${note.address}`)
+	// const hardwareNotesContractWithBuyer = hardwareNotesContract.connect(buyer)
+	// const depositTx = await hardwareNotesContractWithBuyer.deposit(
+	// 	manufacturer.address, 0, 0, tokenContract.address, amount, delay, timeout 
+	// )
+	// await depositTx.wait()
+	// console.log(` Buyer ${buyer.address} deposited into note ${note.address} via transaction ${depositTx.hash} `)
 
 
-    console.log()
-	console.log('========================================')
+    // console.log()
+	// console.log('========================================')
 
-	// merchant calls signalWithdraw with a signed message from the note
+	// // merchant calls signalWithdraw with a signed message from the note
 
-	let blockNumber1 = await provider.getBlockNumber()
-	let block1 = await provider.getBlock(blockNumber1)
-	let blockhash1 = ethers.utils.arrayify(block1.hash)
-	console.log('typeof blockhash1', typeof blockhash1)
-	let flatSig1 = await note.signMessage(blockhash1)
-	let sig1 = ethers.utils.splitSignature(flatSig1)
-	const hardwareNotesContractWithMerchant = hardwareNotesContract.connect(merchant)
-	const signalWithdrawTx = await hardwareNotesContractWithMerchant.signalWithdraw(
-		0, 0, 0, blockNumber1, blockhash1, sig1.v, sig1.r, sig1.s
-	)
-	await signalWithdrawTx.wait()
-	console.log(` Merchant signalled withdraw for note ${note.address} via transaction ${signalWithdrawTx.hash}`)
+	// let blockNumber1 = await provider.getBlockNumber()
+	// let block1 = await provider.getBlock(blockNumber1)
+	// let blockhash1 = ethers.utils.arrayify(block1.hash)
+	// console.log('typeof blockhash1', typeof blockhash1)
+	// let flatSig1 = await note.signMessage(blockhash1)
+	// let sig1 = ethers.utils.splitSignature(flatSig1)
+	// const hardwareNotesContractWithMerchant = hardwareNotesContract.connect(merchant)
+	// const signalWithdrawTx = await hardwareNotesContractWithMerchant.signalWithdraw(
+	// 	0, 0, 0, blockNumber1, blockhash1, sig1.v, sig1.r, sig1.s
+	// )
+	// await signalWithdrawTx.wait()
+	// console.log(` Merchant signalled withdraw for note ${note.address} via transaction ${signalWithdrawTx.hash}`)
 
-    console.log()
-	console.log('========================================')
+    // console.log()
+	// console.log('========================================')
 
-	// fast forward in time
-	let blockBefore = await provider.getBlock(provider.getBlockNumber())
-	console.log('timestampBefore', blockBefore.timestamp)
+	// // fast forward in time
+	// let blockBefore = await provider.getBlock(provider.getBlockNumber())
+	// console.log('timestampBefore', blockBefore.timestamp)
 
-	let time = 1000000
-	async function increaseTime(time) {
-		await web3.currentProvider.send({
-			jsonrpc: '2.0',
-			method: 'evm_increaseTime',
-			params: [time],
-			id: new Date().getSeconds(),
-		}, ()=>{})
+	// let time = 1000000
+	// async function increaseTime(time) {
+	// 	await web3.currentProvider.send({
+	// 		jsonrpc: '2.0',
+	// 		method: 'evm_increaseTime',
+	// 		params: [time],
+	// 		id: new Date().getSeconds(),
+	// 	}, ()=>{})
 		
-		await web3.currentProvider.send({
-			jsonrpc: '2.0',
-			method: 'evm_mine',
-			params: [],
-			id: new Date().getSeconds(),
-		}, ()=>{})
+	// 	await web3.currentProvider.send({
+	// 		jsonrpc: '2.0',
+	// 		method: 'evm_mine',
+	// 		params: [],
+	// 		id: new Date().getSeconds(),
+	// 	}, ()=>{})
 
-		let blockAfter = await provider.getBlock(provider.getBlockNumber())
-		console.log('timestamp after', blockAfter.timestamp)
-		console.log()
-		console.log('========================================')
+	// 	let blockAfter = await provider.getBlock(provider.getBlockNumber())
+	// 	console.log('timestamp after', blockAfter.timestamp)
+	// 	console.log()
+	// 	console.log('========================================')
 
-	}
+	// }
 	
-	let timeTravel = await increaseTime(time)
+	// let timeTravel = await increaseTime(time)
 	
-	// merchant calls withdraw with another signed message from the note
-	let blockNumber2 = await provider.getBlockNumber()
-	let block2 = await provider.getBlock(blockNumber2)
-	let blockhash2 = await ethers.utils.arrayify(block2.hash)
-	let flatSig2 = await note.signMessage(blockhash2)
-	let sig2 = ethers.utils.splitSignature(flatSig2)
-	const withdrawTx = await hardwareNotesContractWithMerchant.withdraw(
-		0, 0, 0, blockNumber2, blockhash2, sig2.v, sig2.r, sig2.s, merchant.address
-	)
-	await withdrawTx.wait()
-	console.log(` Merchant called withdraw for note ${note.address} to recipient ${merchant.address} via transaction ${withdrawTx.hash}`)
+	// // merchant calls withdraw with another signed message from the note
+	// let blockNumber2 = await provider.getBlockNumber()
+	// let block2 = await provider.getBlock(blockNumber2)
+	// let blockhash2 = await ethers.utils.arrayify(block2.hash)
+	// let flatSig2 = await note.signMessage(blockhash2)
+	// let sig2 = ethers.utils.splitSignature(flatSig2)
+	// const withdrawTx = await hardwareNotesContractWithMerchant.withdraw(
+	// 	0, 0, 0, blockNumber2, blockhash2, sig2.v, sig2.r, sig2.s, merchant.address
+	// )
+	// await withdrawTx.wait()
+	// console.log(` Merchant called withdraw for note ${note.address} to recipient ${merchant.address} via transaction ${withdrawTx.hash}`)
 
 }
 
