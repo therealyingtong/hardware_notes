@@ -15,6 +15,10 @@ import android.view.View;
 import android.webkit.WebView;
 import android.widget.TextView;
 
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
+import com.google.common.collect.Iterables;
+
 import org.bouncycastle.util.encoders.Hex;
 
 import org.web3j.abi.EventEncoder;
@@ -47,11 +51,17 @@ public class MainActivity extends AppCompatActivity {
     PendingIntent mPendingIntent;
 	Tag tag;
 	public static byte[] pubKey;
-	public static String address;
-	public static String depositData;
+	public static String noteAddress;
+	public static String manufacturerAddress;
+    public static String batchId;
+    public static String hardwareId;
+    public static String noteId;
+    public static String token;
+    public static String amount;
+    public static String withdrawDelay;
+    public static String withdrawTimeout;
 
-
-	public static final String contract = "0x9fE12268Fa4A3D1be7451b8b3825469A14724ceD";
+    public static final String contract = "0x9fE12268Fa4A3D1be7451b8b3825469A14724ceD";
 	public static final int startBlock = 16681062;
 //	public static final String provider = "https://kovan.infura.io/v3/1bef5b4350a648c7a9439ea7bc9f8846";
     public static final String provider = "https://kovan.poa.network/";
@@ -94,12 +104,12 @@ public class MainActivity extends AppCompatActivity {
                     CashApplicationInfo info = new CashApplicationInfo(cashCmdSet.select().checkOK().getData());
                     pubKey = info.getPubKey();
                     setAddress(pubKey);
-                    getDepositEvent(address);
+                    getDepositEvent(noteAddress);
 
 //                    new Timer().schedule(new TimerTask() {
 //                        @Override
 //                        public void run() {
-//                            getDepositEvent(address);
+//                            getDepositEvent(noteAddress);
 //                        }
 //                     }, 3000);
 
@@ -146,14 +156,14 @@ public class MainActivity extends AppCompatActivity {
     public static void setAddress(byte[] pubKey) throws Exception {
 
         byte[] addressBytes = Keys.getAddress(pubKey);
-        address = Hex.toHexString(addressBytes);
-        Log.i("getAddress", address);
+        noteAddress = Hex.toHexString(addressBytes);
+        Log.i("getAddress", noteAddress);
 
     }
 
 
 
-    public static void getDepositEvent(String note_address) throws Exception {
+    public static void getDepositEvent(String noteAddress) throws Exception {
 
         Log.i("getDepositEvent", "getDepositEvent");
 
@@ -171,21 +181,45 @@ public class MainActivity extends AppCompatActivity {
         String DEPOSIT_EVENT_HASH = EventEncoder.encode(hardwareNotes.DEPOSIT_EVENT);
 
         eventFilter.addSingleTopic(DEPOSIT_EVENT_HASH); // filter: event type (topic[0])
-        eventFilter.addOptionalTopics("0x000000000000000000000000"+note_address);
+        eventFilter.addOptionalTopics("0x"+ Strings.padStart(noteAddress, 64, '0'));
 
         web3j.ethLogFlowable(eventFilter).subscribe(log -> {
             String eventHash = log.getTopics().get(0);
             Log.i("eventHash", eventHash);
 
-            depositData = log.getData();
+            String depositData = log.getData();
+            Log.i("depositData", depositData);
+            String[] tokens =
+                    Iterables.toArray(
+                            Splitter
+                                    .fixedLength(66)
+                                    .split(depositData),
+                            String.class
+                    );
+            manufacturerAddress = tokens[0];
+            batchId = tokens[1];
+            hardwareId = tokens[2];
+            noteId = tokens[3];
+            token = tokens[4];
+            amount = tokens[5];
+            withdrawDelay = tokens[6];
+            withdrawTimeout = tokens[7];
         });
     }
 
     public void clickNoteInfo(View view) throws Exception {
         setContentView(R.layout.activity_display_pubkey);
         TextView tv = (TextView) findViewById(R.id.textview);
-        tv.setText(address + "\n" + depositData);
-
+        tv.setText(
+                "noteAddress: " + noteAddress + "\n" +
+                "manufacturerAddress: " + manufacturerAddress + "\n" +
+                "batchId: " + batchId + "\n" +
+                "hardwareId: " + hardwareId + "\n" +
+                "noteId:" + noteId + "\n" +
+                "token: " + token + "\n" +
+                "amount: " + amount + "\n" +
+                "withdrawDelay: " + withdrawDelay + "\n" +
+                "withdrawTimeout: " + withdrawTimeout);
     }
 
     public void clickHardwareNotes(View view){
