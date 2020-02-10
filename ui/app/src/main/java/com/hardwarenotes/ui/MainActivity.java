@@ -9,6 +9,7 @@ import android.nfc.Tag;
 import android.nfc.NfcAdapter;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
@@ -17,23 +18,20 @@ import android.widget.TextView;
 import org.bouncycastle.util.encoders.Hex;
 
 import org.web3j.abi.EventEncoder;
+import org.web3j.abi.FunctionReturnDecoder;
+import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.crypto.Keys;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.methods.request.EthFilter;
-import org.web3j.protocol.rx.Web3jRx;
 import org.web3j.crypto.Credentials;
-import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.protocol.core.methods.response.EthLog;
 import org.web3j.protocol.http.HttpService;
-import org.web3j.tx.Contract;
-import org.web3j.tx.Transfer;
-import org.web3j.tx.gas.ContractGasProvider;
-import org.web3j.tx.gas.DefaultGasProvider;
-import org.web3j.utils.Convert;
-import org.web3j.utils.Numeric;
 
 import java.math.BigInteger;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import im.status.keycard.android.NFCCardManager;
 import im.status.keycard.applet.CashApplicationInfo;
@@ -50,8 +48,14 @@ public class MainActivity extends AppCompatActivity {
 	Tag tag;
 	public static byte[] pubKey;
 	public static String address;
-	public static String contract = "0x9fE12268Fa4A3D1be7451b8b3825469A14724ceD";
-	public static int startBlock = 16681062;
+	public static String depositData;
+
+
+	public static final String contract = "0x9fE12268Fa4A3D1be7451b8b3825469A14724ceD";
+	public static final int startBlock = 16681062;
+//	public static final String provider = "https://kovan.infura.io/v3/1bef5b4350a648c7a9439ea7bc9f8846";
+    public static final String provider = "https://kovan.poa.network/";
+	public static final String adminPrivKey = "0x7e84cb2db4e2019719853616233be0f3fed271a8f4668534d485348dbd333424";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,7 +93,15 @@ public class MainActivity extends AppCompatActivity {
 
                     CashApplicationInfo info = new CashApplicationInfo(cashCmdSet.select().checkOK().getData());
                     pubKey = info.getPubKey();
-                    getAddress(pubKey);
+                    setAddress(pubKey);
+                    getDepositEvent(address);
+
+//                    new Timer().schedule(new TimerTask() {
+//                        @Override
+//                        public void run() {
+//                            getDepositEvent(address);
+//                        }
+//                     }, 3000);
 
                 } catch (Exception IOException) {
 
@@ -131,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public static void getAddress(byte[] pubKey) throws Exception {
+    public static void setAddress(byte[] pubKey) throws Exception {
 
         byte[] addressBytes = Keys.getAddress(pubKey);
         address = Hex.toHexString(addressBytes);
@@ -139,22 +151,39 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
+
     public static void getDepositEvent(String note_address) throws Exception {
 
+        Log.i("getDepositEvent", "getDepositEvent");
+
+        Credentials credentials = Credentials.create(adminPrivKey);
+
+        Web3j web3j = Web3j.build(new HttpService(provider));
+        HardwareNotes hardwareNotes = HardwareNotes.load(
+                contract, web3j, credentials, BigInteger.valueOf(100000), BigInteger.valueOf(100000));
 
         EthFilter eventFilter = new EthFilter(
                 DefaultBlockParameter.valueOf(BigInteger.valueOf(startBlock)), // filter: from block
                 DefaultBlockParameter.valueOf("latest"), // filter: to block
                 contract // filter: smart contract address
         );
-        eventFilter.addSingleTopic(EventEncoder.encode(Contract.Deposit)); // filter: event type (topic[0])
-        eventFilter.addOptionalTopics(note_address);
+        String DEPOSIT_EVENT_HASH = EventEncoder.encode(hardwareNotes.DEPOSIT_EVENT);
+
+        eventFilter.addSingleTopic(DEPOSIT_EVENT_HASH); // filter: event type (topic[0])
+//        eventFilter.addOptionalTopics(note_address);
+
+        web3j.ethLogFlowable(eventFilter).subscribe(log -> {
+            String eventHash = log.getTopics().get(0);
+            Log.i("eventHash", eventHash);
+        });
     }
 
     public void clickNoteInfo(View view) throws Exception {
         setContentView(R.layout.activity_display_pubkey);
         TextView tv = (TextView) findViewById(R.id.textview);
-        tv.setText(address);
+        tv.setText(address + "\n" + depositData);
+
     }
 
     public void clickHardwareNotes(View view){
