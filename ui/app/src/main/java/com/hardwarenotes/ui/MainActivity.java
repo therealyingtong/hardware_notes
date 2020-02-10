@@ -2,31 +2,34 @@ package com.hardwarenotes.ui;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.security.interfaces.ECPublicKey;
-import java.util.Scanner;
-
 import android.annotation.TargetApi;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.nfc.Tag;
-import android.nfc.tech.Ndef;
-import android.nfc.NdefMessage;
-import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
 import android.widget.TextView;
 
+import org.bouncycastle.util.encoders.Hex;
+
+import org.web3j.crypto.Keys;
+import org.web3j.crypto.Credentials;
+import org.web3j.crypto.WalletUtils;
+import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.protocol.http.HttpService;
+import org.web3j.tx.Transfer;
+import org.web3j.tx.gas.ContractGasProvider;
+import org.web3j.tx.gas.DefaultGasProvider;
+import org.web3j.utils.Convert;
+import org.web3j.utils.Numeric;
+
 import im.status.keycard.android.NFCCardManager;
-import im.status.keycard.applet.ApplicationInfo;
 import im.status.keycard.applet.CashApplicationInfo;
-import im.status.keycard.applet.KeycardCommandSet;
 import im.status.keycard.applet.CashCommandSet;
 import im.status.keycard.io.CardListener;
 import im.status.keycard.io.CardChannel;
@@ -39,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
     PendingIntent mPendingIntent;
 	Tag tag;
 	public static byte[] pubKey;
-    public static String pubKeyString;
+	public static String address;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,27 +72,15 @@ public class MainActivity extends AppCompatActivity {
             public void onConnected(CardChannel cardChannel) {
 
                 Log.i("onConnected", "onConnected");
-				// KeycardCommandSet cmdSet = new KeycardCommandSet(cardChannel);
 
 				CashCommandSet cashCmdSet = new CashCommandSet(cardChannel);
 
-//                NdefMessage msg = new NdefMessage(
-//                    new NdefRecord[] {
-//                            NdefRecord.createApplicationRecord("com.hardwarenotes.ui")
-//                    }
-//                );
-
-//                Ndef ndef = Ndef.get(tag);
 
                 try {
 
-//                    ndef.writeNdefMessage(msg);
-
                     CashApplicationInfo info = new CashApplicationInfo(cashCmdSet.select().checkOK().getData());
                     pubKey = info.getPubKey();
-
-                    setPubKeyString(pubKey);
-                    Log.i("pubKeyString",pubKeyString);
+                    setAddress(pubKey);
 
                 } catch (Exception IOException) {
 
@@ -131,18 +122,19 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public static void setPubKeyString(byte[] pubKey) throws Exception {
+    public static void setAddress(byte[] pubKey) throws Exception {
 
-        pubKeyString = Base64.encodeToString(pubKey, Base64.DEFAULT);
-//        pubKeyString = "dummyPubKeyString";
+        byte[] addressBytes = Keys.getAddress(pubKey);
+        address = Hex.toHexString(addressBytes);
+        Log.i("setAddress", address);
+
 
     }
 
     public void clickNoteInfo(View view) throws Exception {
         setContentView(R.layout.activity_display_pubkey);
         TextView tv = (TextView) findViewById(R.id.textview);
-//        setPubKeyString(pubKey);
-        tv.setText(pubKeyString);
+        tv.setText(address);
     }
 
     public void clickHardwareNotes(View view){
