@@ -23,9 +23,12 @@ import org.bouncycastle.util.encoders.Hex;
 import org.web3j.abi.EventEncoder;
 import org.web3j.crypto.Keys;
 import org.web3j.protocol.core.DefaultBlockParameter;
+import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.methods.response.EthBlock;
+import org.web3j.protocol.core.methods.response.EthBlockNumber;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.tuples.generated.Tuple10;
 
@@ -44,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
     private NFCCardManager cardManager;
     PendingIntent mPendingIntent;
 	Tag tag;
+
 	public static byte[] pubKey;
 	public static String noteAddress;
 	public static String manufacturerAddress;
@@ -54,6 +58,10 @@ public class MainActivity extends AppCompatActivity {
     public static String amount;
     public static String withdrawDelay;
     public static String withdrawTimeout;
+    public static String withdrawStart;
+    public static String isInFlight;
+
+    public static String currentBlock;
 
     public static final String contract = "0xa2ff8dAEf58467b2Ac3c93c955449EE1342F6F9E";
 	public static final int startBlock = 16685179;
@@ -106,6 +114,7 @@ public class MainActivity extends AppCompatActivity {
                     setAddress(pubKey);
                     getDepositEvent(noteAddress);
                     getNote(Integer.parseInt(noteId));
+                    getCurrentBlock();
 
 //                    new Timer().schedule(new TimerTask() {
 //                        @Override
@@ -204,7 +213,8 @@ public class MainActivity extends AppCompatActivity {
 
     public static void getNote(int noteId) throws Exception {
         Tuple10<String, BigInteger, BigInteger, BigInteger, String, BigInteger, BigInteger, BigInteger, BigInteger, Boolean> result = hardwareNotes.getNote(BigInteger.valueOf(noteId)).send();
-        Log.i("result", result.getValue1());
+        withdrawStart = String.valueOf(result.getValue9());
+        isInFlight = String.valueOf(result.getValue10());
     }
 
     public void clickNoteInfo(View view) throws Exception {
@@ -219,7 +229,16 @@ public class MainActivity extends AppCompatActivity {
                 "token: " + token + "\n" +
                 "amount: " + amount + "\n" +
                 "withdrawDelay: " + withdrawDelay + "\n" +
-                "withdrawTimeout: " + withdrawTimeout);
+                "withdrawTimeout: " + withdrawTimeout + "\n" +
+                "withdrawStart: " + withdrawStart + "\n" +
+                "isInFlight: " + isInFlight + "\n\n" +
+                "currentBlock: " + currentBlock
+        );
+    }
+
+    public static void getCurrentBlock() throws Exception {
+        EthBlock.Block block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock();
+        currentBlock = String.valueOf(block.getNumber());
     }
 
     public void clickHardwareNotes(View view){
