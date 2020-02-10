@@ -6,10 +6,10 @@
     android:layout_height="match_parent"
     tools:context=".DisplaySourceActivity">
 
-    <WebView
-        android:id="@+id/webview"
+    <TextView
+        android:id="@+id/textview"
         android:layout_width="409dp"
         android:layout_height="595dp"
         tools:layout_editor_absoluteX="1dp"
-        tools:layout_editor_absoluteY="68dp"></WebView>
+        tools:layout_editor_absoluteY="68dp"></TextView>
 </androidx.constraintlayout.widget.ConstraintLayout>
