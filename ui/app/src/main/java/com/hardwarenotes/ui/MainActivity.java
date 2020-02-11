@@ -13,6 +13,7 @@ import android.nfc.Tag;
 import android.nfc.NfcAdapter;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
@@ -22,6 +23,7 @@ import android.widget.Toolbar;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
+import com.kenai.jffi.Main;
 
 import org.bouncycastle.util.encoders.Hex;
 
@@ -244,8 +246,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void clickNoteInfo(View view) throws Exception {
-        Intent intent = new Intent(this, DisplayNoteActivity.class);
-        startActivity(intent);
+        view.setEnabled(false);
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                final Intent intent = new Intent(MainActivity.this, DisplayNoteActivity.class);
+                MainActivity.this.startActivity(intent);
+//                MainActivity.this.finish();
+                view.setEnabled(true);
+            }
+
+        }, 4000);
     }
 
     public static void getCurrentBlock() throws Exception {
