@@ -1,4 +1,4 @@
 <resources>
     <string name="hardware_notes">hardware notes</string>
-    <string name="scan_hardware_note">scan hardware note</string>
+    <string name="scan_hardware_note">scan note</string>
 </resources>

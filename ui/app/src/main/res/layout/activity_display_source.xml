@@ -7,9 +7,10 @@
     tools:context=".DisplaySourceActivity">
 
     <WebView
-        android:id="@+id/webview"
-        android:layout_width="409dp"
-        android:layout_height="595dp"
-        tools:layout_editor_absoluteX="1dp"
-        tools:layout_editor_absoluteY="68dp"></WebView>
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/webView"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
 </androidx.constraintlayout.widget.ConstraintLayout>
