@@ -4,7 +4,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.TargetApi;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.nfc.Tag;
 import android.nfc.NfcAdapter;
 import android.os.Build;
@@ -82,8 +86,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
 
-//        super.onCreate(savedInstanceState);
-
 
         Log.i("onCreate", "onCreate");
 
@@ -159,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         TextView tv = findViewById(R.id.textView2);
-        tv.setText("your last sync was at block " + currentBlock);
+        tv.setText("your last sync was at block: " + currentBlock);
     }
 
     @Override
@@ -187,43 +189,51 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-    public static void getDepositEvent(String noteAddress) throws Exception {
+    public void getDepositEvent(String noteAddress) throws Exception {
 
-        Log.i("getDepositEvent", "getDepositEvent");
+        boolean connected;
+        ConnectivityManager connectivityManager = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+        if(connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState() == NetworkInfo.State.CONNECTED ||
+                connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState() == NetworkInfo.State.CONNECTED) {
+            //we are connected to a network
+            connected = true;
+        }
+        else
+            connected = false;
 
-        EthFilter eventFilter = new EthFilter(
-                DefaultBlockParameter.valueOf(BigInteger.valueOf(startBlock)), // filter: from block
-                DefaultBlockParameter.valueOf("latest"), // filter: to block
-                contract // filter: smart contract address
-        );
-        String DEPOSIT_EVENT_HASH = EventEncoder.encode(hardwareNotes.DEPOSIT_EVENT);
+        if (connected){
+            Log.i("getDepositEvent", "getDepositEvent");
 
-        eventFilter.addSingleTopic(DEPOSIT_EVENT_HASH); // filter: event type (topic[0])
-        eventFilter.addOptionalTopics("0x"+ Strings.padStart(noteAddress, 64, '0'));
+            EthFilter eventFilter = new EthFilter(
+                    DefaultBlockParameter.valueOf(BigInteger.valueOf(startBlock)), // filter: from block
+                    DefaultBlockParameter.valueOf("latest"), // filter: to block
+                    contract // filter: smart contract address
+            );
+            String DEPOSIT_EVENT_HASH = EventEncoder.encode(hardwareNotes.DEPOSIT_EVENT);
 
-        web3j.ethLogFlowable(eventFilter).subscribe(log -> {
-            String eventHash = log.getTopics().get(0);
-            Log.i("eventHash", eventHash);
+            eventFilter.addSingleTopic(DEPOSIT_EVENT_HASH); // filter: event type (topic[0])
+            eventFilter.addOptionalTopics("0x"+ Strings.padStart(noteAddress, 64, '0'));
 
-            String depositData = log.getData();
-            Log.i("depositData", depositData);
-            String[] tokens =
-                    Iterables.toArray(
-                            Splitter
-                                    .fixedLength(64)
-                                    .split(depositData.substring(2)),
-                            String.class
-                    );
-            for (String string : tokens) Log.i(string, string);
-            manufacturerAddress = "0x" + tokens[0].substring(24);
-            batchId = String.valueOf(Long.parseLong(tokens[1],16));
-            hardwareId = String.valueOf(Long.parseLong(tokens[2],16));
-            noteId = Integer.toHexString(Integer.parseInt(tokens[3]));
-            token = "0x" + tokens[4].substring(24);
-            amount = Integer.toHexString(Integer.parseInt(tokens[5]));
-            withdrawDelay = String.valueOf(Long.parseLong(tokens[6],16));
-            withdrawTimeout = String.valueOf(Long.parseLong(tokens[7], 16));
-        });
+            web3j.ethLogFlowable(eventFilter).subscribe(log -> {
+                String eventHash = log.getTopics().get(0);
+                Log.i("eventHash", eventHash);
+
+                String depositData = log.getData();
+                Log.i("depositData", depositData);
+
+                saveToPreferences(DEPOSIT_EVENT_HASH, depositData);
+                parseDepositData(depositData);
+
+            });
+        }
+        else {
+
+            String depositData = readFromPreferences(noteAddress);
+            parseDepositData(depositData);
+
+        }
+
+
     }
 
     public static void getNote(int noteId) throws Exception {
@@ -247,6 +257,37 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, DisplaySourceActivity.class);
         startActivity(intent);
 
+    }
+
+    public void saveToPreferences(String prefName, String prefValue){
+        SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0); // 0 - for private mode
+        SharedPreferences.Editor editor = pref.edit();
+        editor.putString(prefName, prefValue);
+        editor.apply();
+    }
+
+    public String readFromPreferences(String prefName){
+        SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0); // 0 - for private mode
+        return pref.getString(prefName, null);
+    }
+
+    public void parseDepositData(String depositData){
+        String[] tokens =
+                Iterables.toArray(
+                        Splitter
+                                .fixedLength(64)
+                                .split(depositData.substring(2)),
+                        String.class
+                );
+        for (String string : tokens) Log.i(string, string);
+        manufacturerAddress = "0x" + tokens[0].substring(24);
+        batchId = String.valueOf(Long.parseLong(tokens[1],16));
+        hardwareId = String.valueOf(Long.parseLong(tokens[2],16));
+        noteId = Integer.toHexString(Integer.parseInt(tokens[3]));
+        token = "0x" + tokens[4].substring(24);
+        amount = Integer.toHexString(Integer.parseInt(tokens[5]));
+        withdrawDelay = String.valueOf(Long.parseLong(tokens[6],16));
+        withdrawTimeout = String.valueOf(Long.parseLong(tokens[7], 16));
     }
 
 }

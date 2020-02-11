@@ -194,6 +194,8 @@ public class DisplaySourceActivity extends AppCompatActivity {
         wv.getSettings().setLoadWithOverviewMode(true);
         wv.getSettings().setUseWideViewPort(true);
         wv.setVerticalScrollBarEnabled(true);
+        wv.setHorizontalScrollBarEnabled(true);
+        wv.getSettings().setBuiltInZoomControls(true);
 
     }
 }
