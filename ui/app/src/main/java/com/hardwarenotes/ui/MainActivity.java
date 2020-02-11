@@ -221,8 +221,9 @@ public class MainActivity extends AppCompatActivity {
                 String depositData = log.getData();
                 Log.i("depositData", depositData);
 
-                saveToPreferences(DEPOSIT_EVENT_HASH, depositData);
                 parseDepositData(depositData);
+
+                saveToPreferences(noteId, depositData);
 
             });
         }
@@ -259,6 +260,39 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
+    public void clickSyncState(View view){
+//        syncDepositEvents();
+        Intent intent = new Intent(this, SyncStateActivity.class);
+        startActivity(intent);
+    }
+
+    public void syncDepositEvents(){
+        Log.i("syncDepositEvents", "syncDepositEvents");
+
+        EthFilter eventFilter = new EthFilter(
+                DefaultBlockParameter.valueOf(BigInteger.valueOf(startBlock)), // filter: from block
+                DefaultBlockParameter.valueOf("latest"), // filter: to block
+                contract // filter: smart contract address
+        );
+        String DEPOSIT_EVENT_HASH = EventEncoder.encode(hardwareNotes.DEPOSIT_EVENT);
+
+        eventFilter.addSingleTopic(DEPOSIT_EVENT_HASH); // filter: event type (topic[0])
+
+        web3j.ethLogFlowable(eventFilter).subscribe(log -> {
+            String eventHash = log.getTopics().get(0);
+            Log.i("eventHash", eventHash);
+
+            String depositData = log.getData();
+            Log.i("depositData", depositData);
+
+            String _noteId = getNoteIdFromDepositData(depositData);
+
+            saveToPreferences(_noteId, depositData);
+
+        });
+    }
+
     public void saveToPreferences(String prefName, String prefValue){
         SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0); // 0 - for private mode
         SharedPreferences.Editor editor = pref.edit();
@@ -288,6 +322,17 @@ public class MainActivity extends AppCompatActivity {
         amount = Integer.toHexString(Integer.parseInt(tokens[5]));
         withdrawDelay = String.valueOf(Long.parseLong(tokens[6],16));
         withdrawTimeout = String.valueOf(Long.parseLong(tokens[7], 16));
+    }
+
+    public String getNoteIdFromDepositData(String depositData){
+        String[] tokens =
+                Iterables.toArray(
+                        Splitter
+                                .fixedLength(64)
+                                .split(depositData.substring(2)),
+                        String.class
+                );
+        return Integer.toHexString(Integer.parseInt(tokens[3]));
     }
 
 }
