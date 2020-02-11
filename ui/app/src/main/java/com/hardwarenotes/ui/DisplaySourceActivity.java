@@ -25,7 +25,7 @@ public class DisplaySourceActivity extends AppCompatActivity {
                 "\n" +
                 "\tERC20Interface <b>public</b> tokenContract<i>;</i>\n" +
                 "\n" +
-                "\tmapping <i>(</i>address <i>=</i><i>></i> mapping<i>(</i>uint256 <i>=</i><i>></i> address<i>[</i><i>]</i><i>)</i><i>)</i> <b>public</b> hardware<i>;</i>\n" +
+                "\tmapping <i>(</i>address <i>=</i><i>></i> mapping<i>(</i>uint256 <i>=</i><i>></i> address<i>[</i><i>]</i><i>)</i><i>)</i> <b>public</b> hardware<i>;</i> <i>// manufacturer => batchId => array of note addresses in batch</i>\n" +
                 "\tmapping <i>(</i>uint256 <i>=</i><i>></i> uint256<i>)</i> ETHBalance<i>;</i> <i>// map noteId to value</i>\n" +
                 "\n" +
                 "\tstruct note <i>{</i>\n" +
@@ -43,6 +43,18 @@ public class DisplaySourceActivity extends AppCompatActivity {
                 "\n" +
                 "\tnote<i>[</i><i>]</i> notes<i>;</i>\n" +
                 "\n" +
+                "\tevent Deposit<i>(</i>\n" +
+                "\t\taddress indexed _noteAddress<i>,</i>\n" +
+                "\t\taddress manufacturer<i>,</i>\n" +
+                "\t\tuint batchId<i>,</i>\n" +
+                "\t\tuint hardwareId<i>,</i>\n" +
+                "\t\tuint noteId<i>,</i>\n" +
+                "\t\taddress token<i>,</i>\n" +
+                "\t\tuint amount<i>,</i>\n" +
+                "\t\tuint withdrawDelay<i>,</i>\n" +
+                "\t\tuint withdrawTimeout\n" +
+                "\t<i>)</i><i>;</i>\n" +
+                "\n" +
                 "\t<b>function</b> registerBatch<i>(</i>uint256 batch<i>,</i> address<i>[</i><i>]</i> memory pubKeys<i>)</i> <b>public</b> <i>{</i>\n" +
                 "\n" +
                 "\t\tuint i<i>;</i>\n" +
@@ -55,7 +67,6 @@ public class DisplaySourceActivity extends AppCompatActivity {
                 "\t\taddress manufacturer<i>,</i>\n" +
                 "\t\tuint batchId<i>,</i>\n" +
                 "\t\tuint hardwareId<i>,</i>\n" +
-                "\t\tuint noteId<i>,</i>\n" +
                 "\t\taddress token<i>,</i>\n" +
                 "\t\tuint amount<i>,</i>\n" +
                 "\t\tuint withdrawDelay<i>,</i>\n" +
@@ -63,6 +74,8 @@ public class DisplaySourceActivity extends AppCompatActivity {
                 "\t<b>public</b> payable <i>{</i>\n" +
                 "\n" +
                 "\t\trequire<i>(</i>withdrawTimeout <i>></i> withdrawDelay<i>,</i> <b>\"</b><b>withdrawTimeout must be larger than withdrawDelay</b><b>\"</b><i>)</i><i>;</i>\n" +
+                "\n" +
+                "\t\tuint noteId <i>=</i> notes<i>.</i><b>length</b><i>;</i>\n" +
                 "\n" +
                 "\t\t<i>// ETH deposit</i>\n" +
                 "\t\t<b>if</b> <i>(</i>token <i>==</i> address<i>(</i>0<i>)</i><i>)</i><i>{</i>\n" +
@@ -83,6 +96,13 @@ public class DisplaySourceActivity extends AppCompatActivity {
                 "\t\t\twithdrawDelay<i>,</i> withdrawTimeout<i>,</i> 0<i>,</i> <b>false</b>\n" +
                 "\t\t<i>)</i><i>;</i>\n" +
                 "\t\tnotes<i>.</i>push<i>(</i>newNote<i>)</i><i>;</i>\n" +
+                "\n" +
+                "\t\taddress noteAddress <i>=</i> hardware<i>[</i>manufacturer<i>]</i><i>[</i>batchId<i>]</i><i>[</i>hardwareId<i>]</i><i>;</i>\n" +
+                "\n" +
+                "\t\temit Deposit<i>(</i>\n" +
+                "\t\t\tnoteAddress<i>,</i>\n" +
+                "\t\t\tmanufacturer<i>,</i> batchId<i>,</i> hardwareId<i>,</i> noteId<i>,</i> token<i>,</i> amount<i>,</i> withdrawDelay<i>,</i> withdrawTimeout\n" +
+                "\t\t<i>)</i><i>;</i>\n" +
                 "\t<i>}</i>\n" +
                 "\n" +
                 "\t<b>function</b> signalWithdraw<i>(</i>\n" +
@@ -144,6 +164,23 @@ public class DisplaySourceActivity extends AppCompatActivity {
                 "\t\trequire<i>(</i>notePubKey <i>==</i> ecrecover<i>(</i>messageDigest<i>,</i> v<i>,</i> r<i>,</i> s<i>)</i><i>,</i> <b>'</b><b>only trusted hardware can sign withdraw</b><b>'</b><i>)</i><i>;</i>\n" +
                 "\n" +
                 "\n" +
+                "\t<i>}</i>\n" +
+                "\n" +
+                "\t<b>function</b> getNote<i>(</i>uint _noteId<i>)</i> <b>public</b> view returns<i>(</i>\n" +
+                "\t\taddress manufacturer<i>,</i>\n" +
+                "\t\tuint batchId<i>,</i>\n" +
+                "\t\tuint hardwareId<i>,</i>\n" +
+                "\t\tuint noteId<i>,</i>\n" +
+                "\t\taddress token<i>,</i>\n" +
+                "\t\tuint amount<i>,</i>\n" +
+                "\t\tuint withdrawDelay<i>,</i>\n" +
+                "\t\tuint withdrawTimeout<i>,</i>\n" +
+                "\t\tuint withdrawStart<i>,</i>\n" +
+                "\t\tbool isInFlight\n" +
+                "\t<i>)</i> <i>{</i>\n" +
+                "\t\tnote memory _note <i>=</i> notes<i>[</i>_noteId<i>]</i><i>;</i>\n" +
+                "\t\t<b>return</b> <i>(</i>_note<i>.</i>manufacturer<i>,</i> _note<i>.</i>batchId<i>,</i> _note<i>.</i>hardwareId<i>,</i> _note<i>.</i>noteId<i>,</i> _note<i>.</i>token<i>,</i>\n" +
+                "\t\t_note<i>.</i>amount<i>,</i> _note<i>.</i>withdrawDelay<i>,</i> _note<i>.</i>withdrawTimeout<i>,</i> _note<i>.</i>withdrawStart<i>,</i> _note<i>.</i>isInFlight<i>)</i><i>;</i>\n" +
                 "\t<i>}</i>\n" +
                 "\n" +
                 "<i>}</i>\n" +

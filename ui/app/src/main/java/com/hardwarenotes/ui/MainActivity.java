@@ -64,7 +64,7 @@ public class MainActivity extends AppCompatActivity {
     public static String withdrawStart;
     public static String isInFlight;
 
-    public static String currentBlock;
+    public static String currentBlock = "";
 
     public static final String contract = "0xa2ff8dAEf58467b2Ac3c93c955449EE1342F6F9E";
 	public static final int startBlock = 16685179;
@@ -89,6 +89,9 @@ public class MainActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        TextView tv = findViewById(R.id.textView2);
+        tv.append(currentBlock);
 
         Intent intent = getIntent();
         if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(intent.getAction())) {
@@ -155,6 +158,8 @@ public class MainActivity extends AppCompatActivity {
 //            nfcAdapter.enableForegroundDispatch(this, mPendingIntent, null, null);
         }
 
+        TextView tv = findViewById(R.id.textView2);
+        tv.append(currentBlock);
     }
 
     @Override

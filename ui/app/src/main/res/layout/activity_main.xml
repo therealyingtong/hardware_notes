@@ -33,11 +33,14 @@
         app:layout_constraintTop_toTopOf="@id/button"
         />
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:layout_width="406dp"
-        android:layout_height="66dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent" />
+    <TextView
+        android:id="@+id/textView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:text="your last sync was at block: "
+        tools:layout_editor_absoluteX="174dp"
+        tools:layout_editor_absoluteY="697dp" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
 
