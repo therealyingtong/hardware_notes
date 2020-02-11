@@ -159,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         TextView tv = findViewById(R.id.textView2);
-        tv.append(currentBlock);
+        tv.setText("your last sync was at block " + currentBlock);
     }
 
     @Override
@@ -210,18 +210,19 @@ public class MainActivity extends AppCompatActivity {
             String[] tokens =
                     Iterables.toArray(
                             Splitter
-                                    .fixedLength(66)
-                                    .split(depositData),
+                                    .fixedLength(64)
+                                    .split(depositData.substring(2)),
                             String.class
                     );
-            manufacturerAddress = tokens[0];
-            batchId = tokens[1];
-            hardwareId = tokens[2];
+            for (String string : tokens) Log.i(string, string);
+            manufacturerAddress = "0x" + tokens[0].substring(24);
+            batchId = String.valueOf(Long.parseLong(tokens[1],16));
+            hardwareId = String.valueOf(Long.parseLong(tokens[2],16));
             noteId = Integer.toHexString(Integer.parseInt(tokens[3]));
-            token = Integer.toHexString(Integer.parseInt(tokens[4]));
-            amount = tokens[5];
-            withdrawDelay = tokens[6];
-            withdrawTimeout = tokens[7];
+            token = "0x" + tokens[4].substring(24);
+            amount = Integer.toHexString(Integer.parseInt(tokens[5]));
+            withdrawDelay = String.valueOf(Long.parseLong(tokens[6],16));
+            withdrawTimeout = String.valueOf(Long.parseLong(tokens[7], 16));
         });
     }
 
