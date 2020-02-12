@@ -16,30 +16,27 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
-import android.webkit.WebView;
 import android.widget.TextView;
-import android.widget.Toolbar;
 
-import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
-import com.google.common.collect.Iterables;
-import com.kenai.jffi.Main;
 
 import org.bouncycastle.util.encoders.Hex;
 
 import org.web3j.abi.EventEncoder;
 import org.web3j.crypto.Keys;
+import org.web3j.crypto.Credentials;
+import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.request.EthFilter;
-import org.web3j.crypto.Credentials;
-import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.response.EthBlock;
-import org.web3j.protocol.core.methods.response.EthBlockNumber;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.tuples.generated.Tuple10;
 
 import java.math.BigInteger;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.annotation.Nullable;
 
@@ -48,46 +45,38 @@ import im.status.keycard.applet.CashApplicationInfo;
 import im.status.keycard.applet.CashCommandSet;
 import im.status.keycard.io.CardListener;
 import im.status.keycard.io.CardChannel;
+import io.reactivex.disposables.Disposable;
 
+import static com.hardwarenotes.ui.Helpers.parseDepositData;
 
 public class MainActivity extends AppCompatActivity {
 
     private NfcAdapter nfcAdapter;
     private NFCCardManager cardManager;
     PendingIntent mPendingIntent;
-	Tag tag;
+    Tag tag;
 
-	public static byte[] pubKey;
-	public static String noteAddress;
-	public static String manufacturerAddress;
-    public static String batchId;
-    public static String hardwareId;
-    public static String noteId;
-    public static String token;
-    public static String amount;
-    public static String withdrawDelay;
-    public static String withdrawTimeout;
-    public static String withdrawStart;
-    public static String isInFlight;
+    public static byte[] pubKey;
+    public static String noteAddress;
 
     public static String currentBlock = "";
 
     public static final String contract = "0xa2ff8dAEf58467b2Ac3c93c955449EE1342F6F9E";
-	public static final int startBlock = 16685179;
-//	public static final String provider = "https://kovan.infura.io/v3/1bef5b4350a648c7a9439ea7bc9f8846";
-    public static final String provider = "https://kovan.poa.network/";
-	public static final String adminPrivKey = "0x7e84cb2db4e2019719853616233be0f3fed271a8f4668534d485348dbd333424";
+    public static final int startBlock = 16685179;
+    //	public static final String provider = "https://kovan.infura.io/v3/1bef5b4350a648c7a9439ea7bc9f8846";
+    public static final String adminPrivKey = "0x7e84cb2db4e2019719853616233be0f3fed271a8f4668534d485348dbd333424";
 
     public static final Credentials credentials = Credentials.create(adminPrivKey);
 
+    public static final String provider = "https://kovan.poa.network/";
     public static final Web3j web3j = Web3j.build(new HttpService(provider));
     public static final HardwareNotes hardwareNotes = HardwareNotes.load(
             contract, web3j, credentials, BigInteger.valueOf(100000), BigInteger.valueOf(100000));
 
 
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-
 
         Log.i("onCreate", "onCreate");
 
@@ -113,12 +102,12 @@ public class MainActivity extends AppCompatActivity {
         // The Card Listener receives the connected/disconnected events. These can happen at any time since the user can
         // introduce or remove the card to/from the field at any time. This is where your code goes.
         cardManager.setCardListener(new CardListener() {
-//            @Override
+            //            @Override
             public void onConnected(CardChannel cardChannel) {
 
                 Log.i("onConnected", "onConnected");
 
-				CashCommandSet cashCmdSet = new CashCommandSet(cardChannel);
+                CashCommandSet cashCmdSet = new CashCommandSet(cardChannel);
 
 
                 try {
@@ -126,16 +115,6 @@ public class MainActivity extends AppCompatActivity {
                     CashApplicationInfo info = new CashApplicationInfo(cashCmdSet.select().checkOK().getData());
                     pubKey = info.getPubKey();
                     setAddress(pubKey);
-                    getDepositEvent(noteAddress);
-                    getNote(Integer.parseInt(noteId));
-                    getCurrentBlock();
-
-//                    new Timer().schedule(new TimerTask() {
-//                        @Override
-//                        public void run() {
-//                            getDepositEvent(noteAddress);
-//                        }
-//                     }, 3000);
 
                 } catch (Exception IOException) {
 
@@ -143,12 +122,12 @@ public class MainActivity extends AppCompatActivity {
 
             }
 
-//            @Override
+            //            @Override
             public void onDisconnected() {
                 // Card is disconnected (was removed from the field). You can perform cleanup here.
             }
         });
-       cardManager.start();
+        cardManager.start();
     }
 
     @Override
@@ -180,7 +159,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
     public static void setAddress(byte[] pubKey) throws Exception {
 
         byte[] addressBytes = Keys.getAddress(pubKey);
@@ -190,9 +168,64 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    public void clickNoteInfo(View view) {
 
-    public void getDepositEvent(String noteAddress) throws Exception {
+        if (noteAddress != null){
+            try {
+                view.setEnabled(false);
+                boolean connected;
+                ConnectivityManager connectivityManager = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+                if(connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState() == NetworkInfo.State.CONNECTED ||
+                        connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState() == NetworkInfo.State.CONNECTED) {
+                    //we are connected to a network
+                    connected = true;
+                }
+                else
+                    connected = false;
 
+                int delay = 0;
+
+                if (connected){
+                    getDepositEventOnline(noteAddress);
+                    delay = 4000;
+
+                }
+
+                new Handler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        final Intent intent = new Intent(MainActivity.this, DisplayNoteActivity.class);
+                        MainActivity.this.startActivity(intent);
+//                MainActivity.this.finish();
+                        view.setEnabled(true);
+                    }
+                }, delay);
+            } catch (Exception exception){
+                view.setEnabled(true);
+            }
+        }
+
+
+    }
+
+
+    public void clickHardwareNotes(View view){
+        view.setEnabled(false);
+        Intent intent = new Intent(this, DisplaySourceActivity.class);
+        startActivity(intent);
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                view.setEnabled(true);
+            }
+        }, 2000);
+
+
+    }
+
+
+    public void clickSyncState(View view) {
         boolean connected;
         ConnectivityManager connectivityManager = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
         if(connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState() == NetworkInfo.State.CONNECTED ||
@@ -204,82 +237,40 @@ public class MainActivity extends AppCompatActivity {
             connected = false;
 
         if (connected){
-            Log.i("getDepositEvent", "getDepositEvent");
+            view.setEnabled(false);
 
-            EthFilter eventFilter = new EthFilter(
-                    DefaultBlockParameter.valueOf(BigInteger.valueOf(startBlock)), // filter: from block
-                    DefaultBlockParameter.valueOf("latest"), // filter: to block
-                    contract // filter: smart contract address
-            );
-            String DEPOSIT_EVENT_HASH = EventEncoder.encode(hardwareNotes.DEPOSIT_EVENT);
-
-            eventFilter.addSingleTopic(DEPOSIT_EVENT_HASH); // filter: event type (topic[0])
-            eventFilter.addOptionalTopics("0x"+ Strings.padStart(noteAddress, 64, '0'));
-
-            web3j.ethLogFlowable(eventFilter).subscribe(log -> {
-                String eventHash = log.getTopics().get(0);
-                Log.i("eventHash", eventHash);
-
-                String depositData = log.getData();
-                Log.i("depositData", depositData);
-
-                parseDepositData(depositData);
-
-                saveToPreferences(noteId, depositData);
-
+            Thread thread = new Thread(new Runnable(){
+                @Override
+                public void run() {
+                    syncDepositEvents();
+                }
             });
+            thread.start();
+//            thread.interrupt();
+            syncNotes();
+
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    view.setEnabled(true);
+                }
+            }, 30000);
+
+        } else {
+
         }
-        else {
-
-            String depositData = readFromPreferences(noteAddress);
-            parseDepositData(depositData);
-
-        }
 
 
+
+//        Intent intent = new Intent(this, SyncStateActivity.class);
+//        startActivity(intent);
     }
 
-    public static void getNote(int noteId) throws Exception {
-        Tuple10<String, BigInteger, BigInteger, BigInteger, String, BigInteger, BigInteger, BigInteger, BigInteger, Boolean> result = hardwareNotes.getNote(BigInteger.valueOf(noteId)).send();
-        withdrawStart = String.valueOf(result.getValue9());
-        isInFlight = String.valueOf(result.getValue10());
-    }
-
-    public void clickNoteInfo(View view) throws Exception {
-        view.setEnabled(false);
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                final Intent intent = new Intent(MainActivity.this, DisplayNoteActivity.class);
-                MainActivity.this.startActivity(intent);
-//                MainActivity.this.finish();
-                view.setEnabled(true);
-            }
-
-        }, 4000);
-    }
-
-    public static void getCurrentBlock() throws Exception {
-        EthBlock.Block block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock();
-        currentBlock = String.valueOf(block.getNumber());
-    }
-
-    public void clickHardwareNotes(View view){
-
-        Intent intent = new Intent(this, DisplaySourceActivity.class);
-        startActivity(intent);
-
-    }
-
-
-    public void clickSyncState(View view){
-//        syncDepositEvents();
-        Intent intent = new Intent(this, SyncStateActivity.class);
-        startActivity(intent);
-    }
 
     public void syncDepositEvents(){
         Log.i("syncDepositEvents", "syncDepositEvents");
+
+        getCurrentBlock();
 
         EthFilter eventFilter = new EthFilter(
                 DefaultBlockParameter.valueOf(BigInteger.valueOf(startBlock)), // filter: from block
@@ -290,18 +281,130 @@ public class MainActivity extends AppCompatActivity {
 
         eventFilter.addSingleTopic(DEPOSIT_EVENT_HASH); // filter: event type (topic[0])
 
-        web3j.ethLogFlowable(eventFilter).subscribe(log -> {
+        Logger logger = Logger.getLogger("com.hardwarenotes.ui");
+        Disposable disposable = web3j.ethLogFlowable(eventFilter).subscribe(log -> {
+
             String eventHash = log.getTopics().get(0);
             Log.i("eventHash", eventHash);
 
-            String depositData = log.getData();
+            String _noteAddress = log.getTopics().get(1).substring(26);
+            Log.i("_noteAddress", _noteAddress);
+
+            String blockNumber = log.getBlockNumberRaw();
+            Log.i("eventBlockNumber", blockNumber);
+
+            String depositData = log.getData().concat(blockNumber);
             Log.i("depositData", depositData);
 
-            String _noteId = getNoteIdFromDepositData(depositData);
+            saveToPreferences(_noteAddress, depositData);
+            Log.i("saved _noteAddress", _noteAddress);
 
-            saveToPreferences(_noteId, depositData);
+        }, error -> logger.log(Level.SEVERE, "error", error));
 
+        disposable.dispose();
+
+    }
+
+    public void syncNotes(){
+
+        Thread thread = new Thread(new Runnable(){
+            @Override
+            public void run() {
+                boolean noMoreNotes = false;
+
+                int i = 0;
+
+                while (!noMoreNotes){
+                    try{
+                        getNote(i);
+                        i++;
+
+                    } catch (Exception exception){
+                        noMoreNotes = true;
+                    }
+                }            }
         });
+        thread.start();
+
+    }
+
+
+    public void getDepositEventOnline(String noteAddress) {
+
+        Thread thread = new Thread(new Runnable(){
+            @Override
+            public void run() {
+                Log.i("getDepositEvent", "getDepositEvent");
+
+                EthFilter eventFilter = new EthFilter(
+                        DefaultBlockParameter.valueOf(BigInteger.valueOf(startBlock)), // filter: from block
+                        DefaultBlockParameter.valueOf("latest"), // filter: to block
+                        contract // filter: smart contract address
+                );
+                String DEPOSIT_EVENT_HASH = EventEncoder.encode(hardwareNotes.DEPOSIT_EVENT);
+
+                eventFilter.addSingleTopic(DEPOSIT_EVENT_HASH); // filter: event type (topic[0])
+                eventFilter.addOptionalTopics("0x" + Strings.padStart(noteAddress, 64, '0'));
+
+                Logger logger = Logger.getLogger("com.hardwarenotes.ui");
+
+                Disposable disposable = web3j.ethLogFlowable(eventFilter).subscribe(log -> {
+                    String eventHash = log.getTopics().get(0);
+                    Log.i("eventHash", eventHash);
+
+                    String blockNumber = log.getBlockNumberRaw();
+                    Log.i("eventBlockNumber", blockNumber);
+
+                    String depositData = log.getData().concat(blockNumber);
+                    Log.i("depositData", depositData);
+
+                    Map<String,String> depositDataMap = parseDepositData(depositData);
+
+                    saveToPreferences(noteAddress, depositData);
+
+                    String noteId = depositDataMap.get("noteId");
+                    getNote(Integer.parseInt(noteId));
+                    getCurrentBlock();
+
+                }, error -> logger.log(Level.SEVERE, "error", error));
+                disposable.dispose();
+
+            }
+        });
+        thread.start();
+//        thread.interrupt();
+
+    }
+
+
+    public void getNote(int noteId) {
+
+        try{
+            Tuple10<String, BigInteger, BigInteger, BigInteger, String, BigInteger, BigInteger, BigInteger, BigInteger, Boolean> result = hardwareNotes.getNote(BigInteger.valueOf(noteId)).send();
+            String withdrawStart = String.valueOf(result.getValue9());
+            String isInFlight = String.valueOf(result.getValue10());
+
+            saveToPreferences(noteId+"withdrawStart", withdrawStart);
+            Log.i("saved withdrawStart", noteId+withdrawStart);
+
+            saveToPreferences(noteId+"isInFlight", isInFlight);
+            Log.i("saved isInFlight", noteId+isInFlight);
+
+        } catch (Exception exception) {
+
+        }
+
+    }
+
+
+    public static void getCurrentBlock() {
+        try {
+            EthBlock.Block block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock();
+            currentBlock = String.valueOf(block.getNumber());
+        } catch (Exception exception){
+
+        }
+
     }
 
     public void saveToPreferences(String prefName, String prefValue){
@@ -311,39 +414,11 @@ public class MainActivity extends AppCompatActivity {
         editor.apply();
     }
 
-    public String readFromPreferences(String prefName){
-        SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0); // 0 - for private mode
-        return pref.getString(prefName, null);
-    }
 
-    public void parseDepositData(String depositData){
-        String[] tokens =
-                Iterables.toArray(
-                        Splitter
-                                .fixedLength(64)
-                                .split(depositData.substring(2)),
-                        String.class
-                );
-        for (String string : tokens) Log.i(string, string);
-        manufacturerAddress = "0x" + tokens[0].substring(24);
-        batchId = String.valueOf(Long.parseLong(tokens[1],16));
-        hardwareId = String.valueOf(Long.parseLong(tokens[2],16));
-        noteId = Integer.toHexString(Integer.parseInt(tokens[3]));
-        token = "0x" + tokens[4].substring(24);
-        amount = Integer.toHexString(Integer.parseInt(tokens[5]));
-        withdrawDelay = String.valueOf(Long.parseLong(tokens[6],16));
-        withdrawTimeout = String.valueOf(Long.parseLong(tokens[7], 16));
-    }
 
-    public String getNoteIdFromDepositData(String depositData){
-        String[] tokens =
-                Iterables.toArray(
-                        Splitter
-                                .fixedLength(64)
-                                .split(depositData.substring(2)),
-                        String.class
-                );
-        return Integer.toHexString(Integer.parseInt(tokens[3]));
-    }
+
+
+
 
 }
+
