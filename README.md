@@ -23,7 +23,7 @@ Offline-first cryptocurrency transactions. (reference: https://ethresear.ch/t/ha
 Please get in touch if you have further ideas or want to contribute.
 
 ### User app
-- we do not have working offline state storage that persists between syncs
+- we do have working offline state storage that persists between syncs; however it uses SharedPreferences. there's probably a more scalable way to do it (e.g. SQLite)
 - we should implement the `withdraw` function
 
 ### Manufacturer app
