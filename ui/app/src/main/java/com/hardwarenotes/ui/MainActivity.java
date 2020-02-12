@@ -59,8 +59,6 @@ public class MainActivity extends AppCompatActivity {
     public static byte[] pubKey;
     public static String noteAddress;
 
-    public static String currentBlock = "";
-
     public static final String contract = "0xa2ff8dAEf58467b2Ac3c93c955449EE1342F6F9E";
     public static final int startBlock = 16685179;
     //	public static final String provider = "https://kovan.infura.io/v3/1bef5b4350a648c7a9439ea7bc9f8846";
@@ -84,7 +82,11 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         TextView tv = findViewById(R.id.textView2);
-        tv.append(currentBlock);
+
+        getCurrentBlock();
+
+        String currentBlock = readFromPreferences("currentBlock");
+        if (currentBlock != null) tv.append(currentBlock);
 
         Intent intent = getIntent();
         if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(intent.getAction())) {
@@ -142,6 +144,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         TextView tv = findViewById(R.id.textView2);
+        String currentBlock = readFromPreferences("currentBlock");
         tv.setText("your last sync was at block: " + currentBlock);
     }
 
@@ -397,12 +400,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public static void getCurrentBlock() {
+    public void getCurrentBlock() {
         try {
             EthBlock.Block block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock();
-            currentBlock = String.valueOf(block.getNumber());
+            String currentBlock = String.valueOf(block.getNumber());
+            saveToPreferences("currentBlock", currentBlock);
         } catch (Exception exception){
-
         }
 
     }
@@ -412,6 +415,12 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences.Editor editor = pref.edit();
         editor.putString(prefName, prefValue);
         editor.apply();
+    }
+
+    public String readFromPreferences(String prefName){
+        SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0); // 0 - for private mode
+
+        return pref.getString(prefName, null);
     }
 
 

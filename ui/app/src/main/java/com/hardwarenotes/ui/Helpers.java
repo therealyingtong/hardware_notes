@@ -5,18 +5,9 @@ import android.util.Log;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 
-import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.response.EthBlock;
-import org.web3j.protocol.http.HttpService;
-
-import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.hardwarenotes.ui.MainActivity.contract;
-import static com.hardwarenotes.ui.MainActivity.credentials;
-import static com.hardwarenotes.ui.MainActivity.currentBlock;
 
 public class Helpers{
 

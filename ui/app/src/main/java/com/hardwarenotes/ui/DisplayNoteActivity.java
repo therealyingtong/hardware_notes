@@ -9,7 +9,6 @@ import android.widget.TextView;
 
 import java.util.Map;
 
-import static com.hardwarenotes.ui.MainActivity.currentBlock;
 import static com.hardwarenotes.ui.MainActivity.noteAddress;
 import static com.hardwarenotes.ui.Helpers.parseDepositData;
 
@@ -37,6 +36,7 @@ public class DisplayNoteActivity extends AppCompatActivity {
         SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0); // 0 - for private mode
 
         String depositData = pref.getString(noteAddress, null);
+        String currentBlock = pref.getString("currentBlock", null);
 
         if (depositData != null) {
 
