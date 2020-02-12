@@ -3,6 +3,17 @@ Offline-first cryptocurrency transactions. (reference: https://ethresear.ch/t/ha
 
 ![](https://i.imgur.com/KfB8X8j.png)
 
+## User stories
+### Card manufacturer
+- **registers** a batch of hardware notes by specifying their public keys in the smart contract
+- **deposits** value into hardware notes on the smart contract. Note that deposits can be made by third parties, in ETH or any ERC20 token.
+
+### Buyer / seller
+- hardware notes can be used as currency, e.g. exchange for goods and services.
+- before accepting a hardware note, the recipient should **scan** it to verify that it has not been withdrawn. If the recipient is using an outdated state, they should verify at least that the `withdrawDelay` period has not passed.
+- the user should periodically **sync** their blockchain state, since the frequency of syncs decides which notes they can accept. As an illustration: if they never sync their state, they should accept notes with infinite `withdrawDelay`; and if they are constantly syncing their state, they can accept notes with very small `withdrawDelay`.
+
+
 ## Usage
 - See the smart contract (with published source code) on Kovan testnet at: https://kovan.etherscan.io/address/0xa2ff8dAEf58467b2Ac3c93c955449EE1342F6F9E.
 - To download the app and install it on your Android phone, please download the .apk file at https://github.com/therealyingtong/hardware_notes/blob/master/app-debug.apk.
@@ -16,13 +27,3 @@ Offline-first cryptocurrency transactions. (reference: https://ethresear.ch/t/ha
 ### Manufacturer app
 - we currently don't have a manufacturer app
 - `register` and `deposit` functions
-
-## User stories
-### Card manufacturer
-- **registers** a batch of hardware notes by specifying their public keys in the smart contract
-- **deposits** value into hardware notes on the smart contract. Note that deposits can be made by third parties, in ETH or any ERC20 token.
-
-### Buyer / seller
-- hardware notes can be used as currency, e.g. exchange for goods and services.
-- before accepting a hardware note, the recipient should **scan** it to verify that it has not been withdrawn. If the recipient is using an outdated state, they should verify at least that the `withdrawDelay` period has not passed.
-- the user should periodically **sync** their blockchain state, since the frequency of syncs decides which notes they can accept. As an illustration: if they never sync their state, they should accept notes with infinite `withdrawDelay`; and if they are constantly syncing their state, they can accept notes with very small `withdrawDelay`.
