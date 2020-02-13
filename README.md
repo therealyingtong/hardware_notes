@@ -1,7 +1,7 @@
 # hardware_notes
 Offline-first cryptocurrency transactions. (reference: https://ethresear.ch/t/hardware-notes-a-physical-asset-backed-by-cryptocurrancy/6471) Allows parties with outdated states to transfer assets offline, with assurance that they can be withdrawn online within an agreed time window.
 
-- To **download the app and install it on your Android phone**, please download the .apk file at https://github.com/therealyingtong/hardware_notes/blob/master/app-debug.apk.
+- To **download the app and install it on your Android phone**, please download the .apk file at https://github.com/therealyingtong/hardware_notes/blob/master/hardware_notes.apk.
   - By default, most phones do not allow app installations from unknown sources. Please change this in your phone settings / permissions (https://android.gadgethacks.com/how-to/android-101-sideload-apps-by-enabling-unknown-sources-install-unknown-apps-0161947/)
 - Enable NFC on your phone and hold the hardware note close to your phone. When the phone connects with the NFC tag, it should prompt you to open the app.
 - Once you're in the app, scan the hardware note again and press the `SCAN NOTE` button. After a slight delay (while we query the blockchain), you will see a page specifying details about the note.
