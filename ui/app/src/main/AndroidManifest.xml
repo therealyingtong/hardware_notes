@@ -13,7 +13,19 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".SyncStateActivity"></activity>
+        <activity android:name=".Withdraw1Activity"></activity>
+        <activity android:name=".WithdrawActivity">
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".SyncStateActivity" />
         <activity android:name=".DisplayNoteActivity" />
         <activity android:name=".DisplaySourceActivity" />
         <activity android:name=".MainActivity">

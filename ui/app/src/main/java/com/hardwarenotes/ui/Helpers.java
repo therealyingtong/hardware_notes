@@ -8,6 +8,8 @@ import com.google.common.collect.Iterables;
 import java.util.HashMap;
 import java.util.Map;
 
+import im.status.keycard.applet.RecoverableSignature;
+
 
 public class Helpers{
 
@@ -35,9 +37,6 @@ public class Helpers{
 
         return map;
     }
-
-
-
 
 
 }

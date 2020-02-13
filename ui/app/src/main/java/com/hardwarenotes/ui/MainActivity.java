@@ -52,7 +52,7 @@ import static com.hardwarenotes.ui.Helpers.parseDepositData;
 public class MainActivity extends AppCompatActivity {
 
     private NfcAdapter nfcAdapter;
-    private NFCCardManager cardManager;
+    public static NFCCardManager cardManager;
     PendingIntent mPendingIntent;
     Tag tag;
 
@@ -83,7 +83,8 @@ public class MainActivity extends AppCompatActivity {
 
         TextView tv = findViewById(R.id.textView2);
 
-        getCurrentBlock();
+        EthBlock.Block block = getCurrentBlock();
+        saveCurrentBlock(block);
 
         String currentBlock = readFromPreferences("currentBlock");
         if (currentBlock != null) tv.append(currentBlock);
@@ -171,6 +172,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+
     public void clickNoteInfo(View view) {
 
         if (noteAddress != null){
@@ -227,6 +229,48 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    public void clickWithdraw(View view){
+        view.setEnabled(false);
+        Intent intent = new Intent(this, WithdrawActivity.class);
+        startActivity(intent);
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                view.setEnabled(true);
+            }
+        }, 2000);
+
+    }
+
+
+    public void clickWithdraw1(View view){
+        view.setEnabled(false);
+        Intent intent = new Intent(this, WithdrawActivity.class);
+        startActivity(intent);
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                view.setEnabled(true);
+            }
+        }, 2000);
+
+    }
+
+    public void clickWithdraw2(View view){
+        view.setEnabled(false);
+        Intent intent = new Intent(this, Withdraw1Activity.class);
+        startActivity(intent);
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                view.setEnabled(true);
+            }
+        }, 2000);
+
+    }
 
     public void clickSyncState(View view) {
         boolean connected;
@@ -273,7 +317,8 @@ public class MainActivity extends AppCompatActivity {
     public void syncDepositEvents(){
         Log.i("syncDepositEvents", "syncDepositEvents");
 
-        getCurrentBlock();
+        EthBlock.Block block = getCurrentBlock();
+        saveCurrentBlock(block);
 
         EthFilter eventFilter = new EthFilter(
                 DefaultBlockParameter.valueOf(BigInteger.valueOf(startBlock)), // filter: from block
@@ -400,15 +445,29 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public void getCurrentBlock() {
-        try {
+    public static EthBlock.Block getCurrentBlock() {
+        try{
             EthBlock.Block block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock();
-            String currentBlock = String.valueOf(block.getNumber());
-            saveToPreferences("currentBlock", currentBlock);
+            return block;
         } catch (Exception exception){
+            return null;
         }
 
     }
+
+    public void saveCurrentBlock(EthBlock.Block block){
+
+        if (block != null){
+            String currentBlock = String.valueOf(block.getNumber());
+            saveToPreferences("currentBlock", currentBlock);
+
+            String currentBlockHash = block.getHash();
+            saveToPreferences("currentBlockHash", currentBlockHash);
+        }
+
+
+    }
+
 
     public void saveToPreferences(String prefName, String prefValue){
         SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0); // 0 - for private mode
