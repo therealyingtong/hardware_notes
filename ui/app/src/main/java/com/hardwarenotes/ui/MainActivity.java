@@ -43,15 +43,15 @@ import javax.annotation.Nullable;
 import im.status.keycard.android.NFCCardManager;
 import im.status.keycard.applet.CashApplicationInfo;
 import im.status.keycard.applet.CashCommandSet;
+import im.status.keycard.applet.Ethereum;
 import im.status.keycard.applet.RecoverableSignature;
 import im.status.keycard.io.CardListener;
 import im.status.keycard.io.CardChannel;
 import io.reactivex.disposables.Disposable;
 
-import static com.hardwarenotes.ui.Helpers.bytesToBytes32;
+import static com.hardwarenotes.ui.Helpers.bytesToHex;
 import static com.hardwarenotes.ui.Helpers.hexStringToByteArray;
 import static com.hardwarenotes.ui.Helpers.parseDepositData;
-import static org.web3j.crypto.Hash.sha3;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -121,6 +121,7 @@ public class MainActivity extends AppCompatActivity {
 
                     CashApplicationInfo info = new CashApplicationInfo(cashCmdSet.select().checkOK().getData());
                     pubKey = info.getPubKey();
+
                     getAddress(pubKey);
 
                     String currentBlockHash = readFromPreferences("currentBlockHash");
@@ -182,16 +183,12 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-
     public static void getAddress(byte[] pubKey) throws Exception {
 
-        byte[] addressBytes = Keys.getAddress(pubKey);
+        byte[] addressBytes = Ethereum.toEthereumAddress(pubKey);
         noteAddress = Hex.toHexString(addressBytes);
         Log.i("getAddress", noteAddress);
-
     }
-
-
 
     public void clickNoteInfo(View view) {
 

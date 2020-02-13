@@ -67,6 +67,9 @@ public class WithdrawActivity extends MainActivity {
                 r = (byte[]) signatureMap.get("r");
                 s = (byte[]) signatureMap.get("s");
 
+                String pubkey = bytesToHex(signature.getPublicKey());
+                Log.i("claimed pubkey", pubkey);
+
                 byte[] ethAddress = signature.getEthereumAddress();
                 Log.i("claimed ETH address", bytesToHex(ethAddress));
 
