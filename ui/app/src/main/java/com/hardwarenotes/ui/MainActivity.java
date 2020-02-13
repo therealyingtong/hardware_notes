@@ -48,6 +48,8 @@ import im.status.keycard.io.CardListener;
 import im.status.keycard.io.CardChannel;
 import io.reactivex.disposables.Disposable;
 
+import static com.hardwarenotes.ui.Helpers.bytesToBytes32;
+import static com.hardwarenotes.ui.Helpers.hexStringToByteArray;
 import static com.hardwarenotes.ui.Helpers.parseDepositData;
 
 public class MainActivity extends AppCompatActivity {
@@ -71,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String provider = "https://kovan.poa.network/";
     public static final Web3j web3j = Web3j.build(new HttpService(provider));
     public static final HardwareNotes hardwareNotes = HardwareNotes.load(
-            contract, web3j, credentials, BigInteger.valueOf(100000), BigInteger.valueOf(100000));
+            contract, web3j, credentials, BigInteger.valueOf("7000000000000"), BigInteger.valueOf(5000000));
 
     public boolean isMainActivity = true;
 
@@ -123,19 +125,15 @@ public class MainActivity extends AppCompatActivity {
                     String currentBlockHash = readFromPreferences("currentBlockHash");
                     Log.i("hash",currentBlockHash);
 
-                    signature = new RecoverableSignature(currentBlockHash.getBytes(), cashCmdSet.sign(currentBlockHash.getBytes()).checkOK().getData());
+                    byte[] hash = hexStringToByteArray(currentBlockHash.substring(2));
+                    signature = new RecoverableSignature(hash, cashCmdSet.sign(hash).checkOK().getData());
                     Log.i("signature", signature.toString());
 
-//                    if (signature == null){
-//                        Log.e("error", "signature is null");
-//                    } else{
-//                        Log.i("signature", signature.toString());
-//                    }
 
                 } catch (Exception IOException) {
 
-                    Log.e("IOException", "card disconnected too soon, signing was not completed");
-
+                    Logger logger = Logger.getLogger("com.hardwarenotes.ui");
+                    logger.log(Level.SEVERE, "failed to get block", IOException);
                 }
 
             }

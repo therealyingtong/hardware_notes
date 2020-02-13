@@ -10,6 +10,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 
+import org.web3j.abi.datatypes.generated.Bytes32;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,6 +43,19 @@ public class Helpers extends AppCompatActivity  {
         return map;
     }
 
+    public static byte[] bytesToBytes32(byte[] byteValue) {
+        byte[] byteValueLen32 = new byte[32];
+        System.arraycopy(byteValue, 0, byteValueLen32, 0, byteValue.length);
+        return byteValueLen32;
+    }
 
-
+    public static byte[] hexStringToByteArray(String s) {
+        int len = s.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                    + Character.digit(s.charAt(i+1), 16));
+        }
+        return data;
+    }
 }

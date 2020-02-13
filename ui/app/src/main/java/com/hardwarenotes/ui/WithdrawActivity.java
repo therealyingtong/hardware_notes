@@ -17,6 +17,8 @@ import java.util.logging.Logger;
 
 import im.status.keycard.applet.RecoverableSignature;
 
+import static com.hardwarenotes.ui.Helpers.bytesToBytes32;
+import static com.hardwarenotes.ui.Helpers.hexStringToByteArray;
 import static com.hardwarenotes.ui.Helpers.parseDepositData;
 
 
@@ -58,31 +60,45 @@ public class WithdrawActivity extends MainActivity {
                 noteId = new BigInteger(depositMap.get("noteId"));
                 hardwareId = new BigInteger(depositMap.get("hardwareId"));
                 blockNum = new BigInteger(depositMap.get("eventBlockNumber"));
-                blockHash = readFromPreferences("currentBlockHash").getBytes();
+                String currentBlockHash = readFromPreferences("currentBlockHash");
+                blockHash = bytesToBytes32(hexStringToByteArray(currentBlockHash.substring(2)));
                 v = (BigInteger) signatureMap.get("v");
-                r = (byte[]) signatureMap.get("r");
-                s = (byte[]) signatureMap.get("s");
+                r = bytesToBytes32((byte[]) signatureMap.get("r"));
+                s = bytesToBytes32((byte[]) signatureMap.get("s"));
 
-                TransactionReceipt result = hardwareNotes.signalWithdraw(
-                    batchId,
-                    hardwareId,
-                    noteId,
-                    blockNum,
-                    blockHash,
-                    v,
-                    r,
-                    s
-                ).send();
-
-
-                new Handler().postDelayed(new Runnable() {
+                Thread thread = new Thread(new Runnable(){
                     @Override
                     public void run() {
-                        TextView tv = findViewById(R.id.textView5);
-                        tv.setText(result.toString());
-                        view.setEnabled(true);
+                        try{
+                            TransactionReceipt result = hardwareNotes.signalWithdraw(
+                                    batchId,
+                                    hardwareId,
+                                    noteId,
+                                    blockNum,
+                                    blockHash,
+                                    v,
+                                    r,
+                                    s
+                            ).send();
+
+
+                            new Handler().postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    TextView tv = findViewById(R.id.textView5);
+                                    tv.setText(result.toString());
+                                    view.setEnabled(true);
+                                }
+                            }, 2000);
+                        } catch (Exception exception){
+
+                        }
+
                     }
-                }, 2000);
+                });
+                thread.start();
+//            thread.interrupt();
+
             } catch (Exception exception){
                 Logger logger = Logger.getLogger("com.hardwarenotes.ui");
                 logger.log(Level.SEVERE, "failed to get block", exception);
