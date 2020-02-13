@@ -18,6 +18,7 @@ import java.util.logging.Logger;
 import im.status.keycard.applet.RecoverableSignature;
 
 import static com.hardwarenotes.ui.Helpers.bytesToBytes32;
+import static com.hardwarenotes.ui.Helpers.bytesToHex;
 import static com.hardwarenotes.ui.Helpers.hexStringToByteArray;
 import static com.hardwarenotes.ui.Helpers.parseDepositData;
 
@@ -59,12 +60,15 @@ public class WithdrawActivity extends MainActivity {
                 batchId = new BigInteger(depositMap.get("batchId"));
                 noteId = new BigInteger(depositMap.get("noteId"));
                 hardwareId = new BigInteger(depositMap.get("hardwareId"));
-                blockNum = new BigInteger(depositMap.get("eventBlockNumber"));
+                blockNum = new BigInteger(readFromPreferences("currentBlock"));
                 String currentBlockHash = readFromPreferences("currentBlockHash");
                 blockHash = bytesToBytes32(hexStringToByteArray(currentBlockHash.substring(2)));
                 v = (BigInteger) signatureMap.get("v");
-                r = bytesToBytes32((byte[]) signatureMap.get("r"));
-                s = bytesToBytes32((byte[]) signatureMap.get("s"));
+                r = (byte[]) signatureMap.get("r");
+                s = (byte[]) signatureMap.get("s");
+
+                byte[] ethAddress = signature.getEthereumAddress();
+                Log.i("claimed ETH address", bytesToHex(ethAddress));
 
                 Thread thread = new Thread(new Runnable(){
                     @Override

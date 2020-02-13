@@ -51,6 +51,7 @@ import io.reactivex.disposables.Disposable;
 import static com.hardwarenotes.ui.Helpers.bytesToBytes32;
 import static com.hardwarenotes.ui.Helpers.hexStringToByteArray;
 import static com.hardwarenotes.ui.Helpers.parseDepositData;
+import static org.web3j.crypto.Hash.sha3;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -73,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String provider = "https://kovan.poa.network/";
     public static final Web3j web3j = Web3j.build(new HttpService(provider));
     public static final HardwareNotes hardwareNotes = HardwareNotes.load(
-            contract, web3j, credentials, BigInteger.valueOf("7000000000000"), BigInteger.valueOf(5000000));
+            contract, web3j, credentials, new BigInteger("10000000000000"), BigInteger.valueOf(5000000));
 
     public boolean isMainActivity = true;
 
