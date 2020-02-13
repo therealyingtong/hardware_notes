@@ -124,10 +124,17 @@ public class MainActivity extends AppCompatActivity {
                     Log.i("hash",currentBlockHash);
 
                     signature = new RecoverableSignature(currentBlockHash.getBytes(), cashCmdSet.sign(currentBlockHash.getBytes()).checkOK().getData());
+                    Log.i("signature", signature.toString());
+
+//                    if (signature == null){
+//                        Log.e("error", "signature is null");
+//                    } else{
+//                        Log.i("signature", signature.toString());
+//                    }
 
                 } catch (Exception IOException) {
 
-                    Log.i("IOException", "card disconnected too soon, signing was not completed");
+                    Log.e("IOException", "card disconnected too soon, signing was not completed");
 
                 }
 
@@ -236,16 +243,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void clickWithdraw(View view){
-        view.setEnabled(false);
-        Intent intent = new Intent(this, WithdrawActivity.class);
-        startActivity(intent);
+        boolean connected = isConnected();
 
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                view.setEnabled(true);
-            }
-        }, 2000);
+        if (connected){
+            view.setEnabled(false);
+            Intent intent = new Intent(this, WithdrawActivity.class);
+            startActivity(intent);
+
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    view.setEnabled(true);
+                }
+            }, 2000);
+        }
+
 
     }
 
@@ -446,9 +458,6 @@ public class MainActivity extends AppCompatActivity {
         Thread thread = new Thread(new Runnable(){
             @Override
             public void run() {
-
-                Logger logger = Logger.getLogger("com.hardwarenotes.ui");
-
                 try{
                     EthBlock.Block block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock();
                     Log.i("got block", "got block");
@@ -462,6 +471,7 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                 } catch (Exception exception){
+                    Logger logger = Logger.getLogger("com.hardwarenotes.ui");
                     logger.log(Level.SEVERE, "failed to get block", exception);
                 }
 
