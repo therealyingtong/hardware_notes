@@ -1,6 +1,11 @@
 package com.hardwarenotes.ui;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.util.Log;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
@@ -8,10 +13,8 @@ import com.google.common.collect.Iterables;
 import java.util.HashMap;
 import java.util.Map;
 
-import im.status.keycard.applet.RecoverableSignature;
 
-
-public class Helpers{
+public class Helpers extends AppCompatActivity  {
 
 
     public static Map<String, String> parseDepositData(String depositData){
@@ -37,6 +40,7 @@ public class Helpers{
 
         return map;
     }
+
 
 
 }

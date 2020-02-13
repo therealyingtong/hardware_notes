@@ -43,6 +43,7 @@ import javax.annotation.Nullable;
 import im.status.keycard.android.NFCCardManager;
 import im.status.keycard.applet.CashApplicationInfo;
 import im.status.keycard.applet.CashCommandSet;
+import im.status.keycard.applet.RecoverableSignature;
 import im.status.keycard.io.CardListener;
 import im.status.keycard.io.CardChannel;
 import io.reactivex.disposables.Disposable;
@@ -51,13 +52,14 @@ import static com.hardwarenotes.ui.Helpers.parseDepositData;
 
 public class MainActivity extends AppCompatActivity {
 
-    private NfcAdapter nfcAdapter;
+    public static NfcAdapter nfcAdapter;
     public static NFCCardManager cardManager;
     PendingIntent mPendingIntent;
     Tag tag;
 
     public static byte[] pubKey;
     public static String noteAddress;
+    public static RecoverableSignature signature;
 
     public static final String contract = "0xa2ff8dAEf58467b2Ac3c93c955449EE1342F6F9E";
     public static final int startBlock = 16685179;
@@ -83,8 +85,7 @@ public class MainActivity extends AppCompatActivity {
 
         TextView tv = findViewById(R.id.textView2);
 
-        EthBlock.Block block = getCurrentBlock();
-        saveCurrentBlock(block);
+        getCurrentBlockOnline();
 
         String currentBlock = readFromPreferences("currentBlock");
         if (currentBlock != null) tv.append(currentBlock);
@@ -117,9 +118,16 @@ public class MainActivity extends AppCompatActivity {
 
                     CashApplicationInfo info = new CashApplicationInfo(cashCmdSet.select().checkOK().getData());
                     pubKey = info.getPubKey();
-                    setAddress(pubKey);
+                    getAddress(pubKey);
+
+                    String currentBlockHash = readFromPreferences("currentBlockHash");
+                    Log.i("hash",currentBlockHash);
+
+                    signature = new RecoverableSignature(currentBlockHash.getBytes(), cashCmdSet.sign(currentBlockHash.getBytes()).checkOK().getData());
 
                 } catch (Exception IOException) {
+
+                    Log.i("IOException", "card disconnected too soon, signing was not completed");
 
                 }
 
@@ -128,6 +136,7 @@ public class MainActivity extends AppCompatActivity {
             //            @Override
             public void onDisconnected() {
                 // Card is disconnected (was removed from the field). You can perform cleanup here.
+
             }
         });
         cardManager.start();
@@ -141,12 +150,14 @@ public class MainActivity extends AppCompatActivity {
         // We need to enable the reader on resume.
         if (nfcAdapter != null) {
             nfcAdapter.enableReaderMode(this, this.cardManager, NfcAdapter.FLAG_READER_NFC_A | NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK, null);
-//            nfcAdapter.enableForegroundDispatch(this, mPendingIntent, null, null);
+            nfcAdapter.enableForegroundDispatch(this, mPendingIntent, null, null);
         }
+
+        getCurrentBlockOnline();
 
         TextView tv = findViewById(R.id.textView2);
         String currentBlock = readFromPreferences("currentBlock");
-        tv.setText("your last sync was at block: " + currentBlock);
+        if (currentBlock != null) tv.setText("your last sync was at block: " + currentBlock);
     }
 
     @Override
@@ -163,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public static void setAddress(byte[] pubKey) throws Exception {
+    public static void getAddress(byte[] pubKey) throws Exception {
 
         byte[] addressBytes = Keys.getAddress(pubKey);
         noteAddress = Hex.toHexString(addressBytes);
@@ -178,15 +189,7 @@ public class MainActivity extends AppCompatActivity {
         if (noteAddress != null){
             try {
                 view.setEnabled(false);
-                boolean connected;
-                ConnectivityManager connectivityManager = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
-                if(connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState() == NetworkInfo.State.CONNECTED ||
-                        connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState() == NetworkInfo.State.CONNECTED) {
-                    //we are connected to a network
-                    connected = true;
-                }
-                else
-                    connected = false;
+                boolean connected = isConnected();
 
                 int delay = 0;
 
@@ -260,7 +263,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void clickWithdraw2(View view){
         view.setEnabled(false);
-        Intent intent = new Intent(this, Withdraw1Activity.class);
+        Intent intent = new Intent(this, WithdrawActivity.class);
         startActivity(intent);
 
         new Handler().postDelayed(new Runnable() {
@@ -273,15 +276,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void clickSyncState(View view) {
-        boolean connected;
-        ConnectivityManager connectivityManager = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
-        if(connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState() == NetworkInfo.State.CONNECTED ||
-                connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState() == NetworkInfo.State.CONNECTED) {
-            //we are connected to a network
-            connected = true;
-        }
-        else
-            connected = false;
+        boolean connected = isConnected();
 
         if (connected){
             view.setEnabled(false);
@@ -317,8 +312,7 @@ public class MainActivity extends AppCompatActivity {
     public void syncDepositEvents(){
         Log.i("syncDepositEvents", "syncDepositEvents");
 
-        EthBlock.Block block = getCurrentBlock();
-        saveCurrentBlock(block);
+        getCurrentBlockOnline();
 
         EthFilter eventFilter = new EthFilter(
                 DefaultBlockParameter.valueOf(BigInteger.valueOf(startBlock)), // filter: from block
@@ -412,7 +406,7 @@ public class MainActivity extends AppCompatActivity {
 
                     String noteId = depositDataMap.get("noteId");
                     getNote(Integer.parseInt(noteId));
-                    getCurrentBlock();
+                    getCurrentBlockOnline();
 
                 }, error -> logger.log(Level.SEVERE, "error", error));
                 disposable.dispose();
@@ -445,26 +439,32 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public static EthBlock.Block getCurrentBlock() {
-        try{
-            EthBlock.Block block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock();
-            return block;
-        } catch (Exception exception){
-            return null;
-        }
+    public void getCurrentBlockOnline() {
+        Thread thread = new Thread(new Runnable(){
+            @Override
+            public void run() {
 
-    }
+                Logger logger = Logger.getLogger("com.hardwarenotes.ui");
 
-    public void saveCurrentBlock(EthBlock.Block block){
+                try{
+                    EthBlock.Block block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock();
+                    Log.i("got block", "got block");
 
-        if (block != null){
-            String currentBlock = String.valueOf(block.getNumber());
-            saveToPreferences("currentBlock", currentBlock);
+                    if (block != null){
+                        String currentBlock = String.valueOf(block.getNumber());
+                        saveToPreferences("currentBlock", currentBlock);
 
-            String currentBlockHash = block.getHash();
-            saveToPreferences("currentBlockHash", currentBlockHash);
-        }
+                        String currentBlockHash = block.getHash();
+                        saveToPreferences("currentBlockHash", currentBlockHash);
+                    }
 
+                } catch (Exception exception){
+                    logger.log(Level.SEVERE, "failed to get block", exception);
+                }
+
+            }
+        });
+        thread.start();
 
     }
 
@@ -482,7 +482,19 @@ public class MainActivity extends AppCompatActivity {
         return pref.getString(prefName, null);
     }
 
+    public boolean isConnected(){
+        boolean connected;
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if(connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState() == NetworkInfo.State.CONNECTED ||
+                connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState() == NetworkInfo.State.CONNECTED) {
+            //we are connected to a network
+            connected = true;
+        }
+        else
+            connected = false;
 
+        return connected;
+    }
 
 
 
