@@ -17,13 +17,14 @@ import im.status.keycard.applet.RecoverableSignature;
 
 import static com.hardwarenotes.ui.MainActivity.signature;
 
-public class WithdrawActivity extends AppCompatActivity {
+public class WithdrawActivity extends MainActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_withdraw);
         parseSignature(signature);
+        isMainActivity = false;
 
     }
 

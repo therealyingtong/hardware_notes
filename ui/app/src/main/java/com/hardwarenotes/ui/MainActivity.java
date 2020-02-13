@@ -73,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
     public static final HardwareNotes hardwareNotes = HardwareNotes.load(
             contract, web3j, credentials, BigInteger.valueOf(100000), BigInteger.valueOf(100000));
 
-
+    public boolean isMainActivity = true;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -153,11 +153,14 @@ public class MainActivity extends AppCompatActivity {
             nfcAdapter.enableForegroundDispatch(this, mPendingIntent, null, null);
         }
 
-        getCurrentBlockOnline();
+        if (isMainActivity){
+            getCurrentBlockOnline();
 
-        TextView tv = findViewById(R.id.textView2);
-        String currentBlock = readFromPreferences("currentBlock");
-        if (currentBlock != null) tv.setText("your last sync was at block: " + currentBlock);
+            TextView tv = findViewById(R.id.textView2);
+            String currentBlock = readFromPreferences("currentBlock");
+            if (currentBlock != null) tv.setText("your last sync was at block: " + currentBlock);
+        }
+
     }
 
     @Override
