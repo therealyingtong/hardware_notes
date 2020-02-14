@@ -3,6 +3,7 @@ Offline-first cryptocurrency transactions. (reference: https://ethresear.ch/t/ha
 
 - To **download the app and install it on your Android phone**, please download the `hardware_notes.apk` file at https://github.com/therealyingtong/hardware_notes/releases/tag/v1.0
   - By default, most phones do not allow app installations from unknown sources. Please change this in your phone settings / permissions (https://android.gadgethacks.com/how-to/android-101-sideload-apps-by-enabling-unknown-sources-install-unknown-apps-0161947/)
+  - We need Android 8.0 Oreo at least.
 - Enable NFC on your phone and hold the hardware note close to your phone. When the phone connects with the NFC tag, it should prompt you to open the app.
 - Once you're in the app, scan the hardware note again and press the `SCAN NOTE` button. After a slight delay (while we query the blockchain), you will see a page specifying details about the note.
 
