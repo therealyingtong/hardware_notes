@@ -1,6 +1,8 @@
 # hardware_notes
 Offline-first cryptocurrency transactions. (reference: https://ethresear.ch/t/hardware-notes-a-physical-asset-backed-by-cryptocurrancy/6471) Allows parties with outdated states to transfer assets offline, with assurance that they can be withdrawn online within an agreed time window.
 
+Join our Telegram group at https://t.me/hardware_notes
+
 - To **download the app and install it on your Android phone**, please download the `hardware_notes.apk` file at https://github.com/therealyingtong/hardware_notes/releases/tag/v1.0
   - By default, most phones do not allow app installations from unknown sources. Please change this in your phone settings / permissions (https://android.gadgethacks.com/how-to/android-101-sideload-apps-by-enabling-unknown-sources-install-unknown-apps-0161947/)
   - We need Android 8.0 Oreo at least.
