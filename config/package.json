@@ -10,7 +10,7 @@
     "author": "Ying Tong",
     "license": "GPL-3.0-or-later",
     "dependencies": {
-        "config": "^3.1.0",
+        "config": "^3.3.8",
         "js-yaml": "^3.13.1",
 		"path": "^0.12.7"
     },
